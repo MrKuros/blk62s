@@ -1,4 +1,4 @@
-/* Arial sized to IBM Plex Sans per weight (average advance, ascent, descent), so the Google Fonts swap reflows no
+/* Arial sized to IBM Plex Sans per weight (average advance, ascent, descent), so the web-font swap reflows no
  * text: without it, 500/600 fall back to a wider bold and lines re-wrap when Plex lands (layout shift). */
 @font-face {
   font-family: 'Plex Sans Fallback';
