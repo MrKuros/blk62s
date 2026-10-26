@@ -6,7 +6,7 @@ Firm Wind is a decision desk for a UK day-ahead power buyer. When an auction clo
 
 **Live app:** https://blk62s.vercel.app · **API docs:** https://blk62s.vercel.app/api/docs
 
-<!-- SCREENSHOT: docs/screenshot.png (answer hero + Decision tab for 12 Jan 2026) -->
+![Firm Wind: Decision tab for Mon 12 Jan 2026 at EPEX gate closure](docs/screenshot.png)
 
 ## What it answers
 
