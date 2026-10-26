@@ -4,7 +4,7 @@
 
 Firm Wind is a decision desk for a UK day-ahead power buyer. When an auction closes, the buyer needs to know how much national wind they can count on and how sure they can be. The app replays every January 2026 purchase decision using only the forecasts published before gate closure. It then measures how wrong the public NESO wind forecast (Elexon WINDFOR) was against metered output (Elexon FUELHH). Finally it turns that error into a single **firm-wind** number at a reliability the buyer chooses, and tests that number on days the model had not yet seen. The main finding is that WINDFOR consistently over-states the wind that is actually delivered, and the gap widens as wind rises. A correction learned only from earlier days removes much of that gap.
 
-**Live app:** <!-- LIVE_URL --> _(link added at deploy)_ · **API docs:** `<live-url>/api/docs`
+**Live app:** https://blk62s.vercel.app · **API docs:** https://blk62s.vercel.app/api/docs
 
 <!-- SCREENSHOT: docs/screenshot.png (answer card + replay for 12 Jan 2026) -->
 
@@ -118,7 +118,7 @@ Parameters: `cutoff` = `epex` \| `n2ex` \| `HH:MM` (UK local, D-1); `margin` = `
 | Alignment | Hourly forecast at *h* vs the mean of FUELHH half-hours *h* and *h+30m* | This is the energy of the hourly product being traded. It was chosen before looking at results; two alternatives appear in a sensitivity table. |
 | Correction and firm wind | Walk-forward: day D is calibrated only on delivery days ≤ D-2 | D-1's outturn is not complete at the D-1 gate. Nothing about day D is fitted on D or later. |
 | Calibration window | January only (default; 5 training days needed, so the first 6 deliveries, 2–7 Jan, are warm-up) or "Include December 2025 history" | The toggle uses history a trader really held at the time. Warm-up days show the raw forecast and are left out of coverage statistics. |
-| Data source | Bundled snapshot is primary, verified live against Elexon on start-up | Historic data does not change, so review-day outages cannot change the numbers. The badge shows *verified*, *changed* or *unreachable*. |
+| Data source | Bundled snapshot is primary, verified live against Elexon via `/api/v1/source` (CDN-cached) | Historic data does not change, so review-day outages cannot change the numbers. The badge shows *verified*, *changed* or *unreachable*. |
 
 The full reasoning, including caveats such as curtailment, the 28 Jan NESO IT incident and why the NESO benchmark is not comparable, is in [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md).
 
