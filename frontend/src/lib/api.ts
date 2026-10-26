@@ -10,7 +10,8 @@ export type Waiting = S['Waiting']
 export type Live = S['Live']
 export type Sig = S['Sig']
 export type CI = S['CI']
-export type SourceState = S['SourceStatus']['state']
+export type SourceStatus = S['SourceStatus']
+export type SourceState = SourceStatus['state']
 export type Calib = S['Params']['calib']
 export type ExportView = operations['export_csv_api_v1_export_csv_get']['parameters']['query']['view']
 
@@ -57,6 +58,7 @@ async function get<T>(path: string, params?: object, signal?: AbortSignal): Prom
 
 export const api = {
   meta: (signal?: AbortSignal) => get<Meta>('/meta', undefined, signal),
+  source: (signal?: AbortSignal) => get<SourceStatus>('/source', undefined, signal),
   replay: (q: ReplayQuery, signal?: AbortSignal) => get<Replay>('/replay', q, signal),
   accuracy: (q: AnalysisQuery, signal?: AbortSignal) => get<Accuracy>('/accuracy', q, signal),
   firm: (q: AnalysisQuery, signal?: AbortSignal) => get<Firm>('/firm', q, signal),

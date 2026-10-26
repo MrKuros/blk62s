@@ -8,13 +8,21 @@ export interface AnalysisParams {
   calib: Calib
 }
 
-/** Source status is re-polled while the background Elexon check is still running. */
+/** The snapshot check runs inline on /source (serverless can't finish background work), so it is
+ * fetched separately and merged into meta: the page renders immediately while the badge catches up. */
 export function useMeta() {
-  return useQuery({
-    queryKey: ['meta'],
-    queryFn: ({ signal }) => api.meta(signal),
-    refetchInterval: (q) => (q.state.data?.source.state === 'checking' ? 5_000 : false),
+  const meta = useQuery({ queryKey: ['meta'], queryFn: ({ signal }) => api.meta(signal) })
+  const source = useQuery({
+    queryKey: ['source'],
+    queryFn: ({ signal }) => api.source(signal),
+    enabled: !!meta.data,
+    staleTime: 5 * 60_000,
+    retry: 1,
   })
+  if (!meta.data) return meta
+  if (source.data) return { ...meta, data: { ...meta.data, source: source.data } }
+  if (source.isError) return { ...meta, data: { ...meta.data, source: { state: 'unreachable' as const, checked_at: null } } }
+  return meta
 }
 
 // Every January key carries the data hash, so a new snapshot can never be served from a stale cache entry,

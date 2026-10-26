@@ -125,6 +125,16 @@ def test_meta_ttl_follows_source_state(client, monkeypatch, state, ttl):
     assert "max-age=0" in r.headers["Cache-Control"]
 
 
+@pytest.mark.parametrize(("state", "ttl"), [("verified", 3600), ("changed", 3600), ("unreachable", 60)])
+def test_source_verifies_inline_with_state_ttl(client, monkeypatch, state, ttl):
+    monkeypatch.setattr(
+        data, "verify_once", lambda: {"state": state, "checked_at": "2026-10-26T07:00:00+00:00"}
+    )
+    r = get(client, "source")
+    assert r.status_code == 200 and r.json()["state"] == state
+    assert r.headers["Vercel-CDN-Cache-Control"] == f"s-maxage={ttl}"
+
+
 def test_health_is_not_cached(client):
     assert get(client, "health").headers["Cache-Control"] == "no-store"
 

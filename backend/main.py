@@ -137,6 +137,14 @@ def meta(response: Response) -> Meta:
     return m
 
 
+@api.get("/source", response_model=SourceStatus)
+def source(response: Response) -> SourceStatus:
+    """Snapshot check against live Elexon. Runs inline when no recent result exists (~5 s)."""
+    st = SourceStatus(**data.verify_once())
+    response.headers.update(_short(3600 if st.state in ("verified", "changed") else 60))
+    return st
+
+
 @api.get("/replay", response_model=Replay)
 def replay(
     response: Response,

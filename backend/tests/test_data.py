@@ -178,12 +178,24 @@ def test_live_inputs_negative_cache(snapshot, clock, monkeypatch):
     monkeypatch.setattr(data, "_http_get", fake)
     with pytest.raises(RuntimeError, match="Elexon unavailable"):
         data.live_inputs(NOW)
-    assert fake.calls == 1
+    first = fake.calls  # chunks are fetched concurrently, so a failed attempt may issue several
+    assert first >= 1
     clock.t += data.LIVE_FAIL_TTL_S - 1
     with pytest.raises(RuntimeError):
         data.live_inputs(NOW)
-    assert fake.calls == 1  # failure served from the negative cache
+    assert fake.calls == first  # failure served from the negative cache
     clock.t += 2
     fake.fail = None
     assert len(data.live_inputs(NOW)[0])
-    assert fake.calls > 1
+    assert fake.calls > first
+
+
+def test_verify_once_runs_inline_then_reuses_recent_result(snapshot, source, monkeypatch):
+    fake = FakeElexon(snapshot)
+    monkeypatch.setattr(data, "_http_get", fake)
+    assert data.verify_once()["state"] == "verified"
+    calls = fake.calls
+    assert data.verify_once()["state"] == "verified"
+    assert fake.calls == calls  # recent result reused, no refetch
+    assert data.verify_once(max_age_s=0)["state"] == "verified"
+    assert fake.calls > calls  # stale result triggers a fresh check

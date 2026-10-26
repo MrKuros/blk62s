@@ -15,6 +15,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from functools import lru_cache
@@ -67,26 +68,31 @@ def _iso(dt: datetime) -> str:
     return dt.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _get_all(urls: list[str], timeout: float) -> list[dict]:
+    """Fetch chunks concurrently (order preserved): a serverless request can afford ~5 s, not ~30 s."""
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        bodies = pool.map(lambda u: _http_get(u, timeout), urls)
+        return [row for body in bodies for row in json.loads(body)]
+
+
 def fetch_windfor(start: datetime, end: datetime, timeout: float = 30) -> list[dict]:
-    rows: list[dict] = []
+    urls: list[str] = []
     t = start
     while t < end:
         e = min(t + timedelta(days=CHUNK_DAYS), end)
-        url = f"{BASE}/WINDFOR/stream?publishDateTimeFrom={_iso(t)}&publishDateTimeTo={_iso(e)}"
-        rows += json.loads(_http_get(url, timeout))
+        urls.append(f"{BASE}/WINDFOR/stream?publishDateTimeFrom={_iso(t)}&publishDateTimeTo={_iso(e)}")
         t = e
-    return rows
+    return _get_all(urls, timeout)
 
 
 def fetch_fuelhh(start: date, end: date, timeout: float = 30) -> list[dict]:
-    rows: list[dict] = []
+    urls: list[str] = []
     d = start
     while d <= end:
         e = min(d + timedelta(days=CHUNK_DAYS - 1), end)
-        url = f"{BASE}/FUELHH/stream?settlementDateFrom={d}&settlementDateTo={e}&fuelType=WIND"
-        rows += json.loads(_http_get(url, timeout))
+        urls.append(f"{BASE}/FUELHH/stream?settlementDateFrom={d}&settlementDateTo={e}&fuelType=WIND")
         d = e + timedelta(days=1)
-    return rows
+    return _get_all(urls, timeout)
 
 
 # ---------------------------------------------------------------- normalise + hash
@@ -213,14 +219,34 @@ def verify_now(timeout: float = 20) -> str:
     return state
 
 
+_verify_lock = threading.Lock()
+VERIFY_MAX_AGE_S = 3600
+
+
+def verify_once(max_age_s: float = VERIFY_MAX_AGE_S) -> dict:
+    """Return the source status, verifying synchronously if no recent result exists.
+
+    Serverless platforms freeze a function once its response is sent, so a background thread may
+    never finish there; the /source route calls this inline instead (the CDN absorbs repeats).
+    """
+    with _verify_lock:
+        st = source_status()
+        if st["checked_at"] is not None:
+            age = (datetime.now(UTC) - datetime.fromisoformat(st["checked_at"])).total_seconds()
+            if age < max_age_s:
+                return st
+        verify_now()
+        return source_status()
+
+
 def start_verify() -> None:
-    """Kick off one background verification per process."""
+    """Kick off one background verification per process (completes on long-lived servers)."""
     global _verify_started
     with _lock:
         if _verify_started:
             return
         _verify_started = True
-    threading.Thread(target=verify_now, daemon=True, name="snapshot-verify").start()
+    threading.Thread(target=verify_once, daemon=True, name="snapshot-verify").start()
 
 
 # ---------------------------------------------------------------- live inputs (Section E)

@@ -1,18 +1,36 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["lhr1"],
+  "regions": [
+    "lhr1"
+  ],
   "services": {
-    "web": { "root": "frontend/" },
+    "web": {
+      "root": "frontend/",
+      "framework": "vite"
+    },
     "api": {
       "root": "backend/",
+      "framework": "fastapi",
       "entrypoint": "main:app",
       "functions": {
-        "main.py": { "excludeFiles": "tests/**" }
+        "main.py": {
+          "excludeFiles": "tests/**"
+        }
       }
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": { "service": "api" } },
-    { "source": "/(.*)", "destination": { "service": "web" } }
+    {
+      "source": "/api/(.*)",
+      "destination": {
+        "service": "api"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "web"
+      }
+    }
   ]
 }
