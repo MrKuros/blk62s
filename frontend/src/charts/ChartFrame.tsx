@@ -6,6 +6,7 @@ export type Scale = ScaleLinear<number, number>
 export interface Tick {
   value: number
   label: string
+  anchor?: 'start' | 'middle' | 'end'
 }
 export interface Plot {
   x: Scale
@@ -47,7 +48,7 @@ export function hourTicks(x: Scale, width: number): Tick[] {
 const nearest = (xs: number[], v: number) =>
   xs.reduce((best, x, i) => (Math.abs(x - v) < Math.abs((xs[best] ?? x) - v) ? i : best), 0)
 
-function useWidth() {
+export function useWidth() {
   const ref = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(640)
   // Layout effect: measure before first paint so phones never flash a 640 px chart.
@@ -74,6 +75,8 @@ interface Props {
   xTicks?: (x: Scale, width: number) => Tick[]
   yFormat?: (v: number) => string
   yLabel?: string
+  /** Axis title under the x ticks. */
+  xLabel?: string
   /** X positions the crosshair snaps to; with `tooltip`, enables pointer and arrow-key readout. */
   snap?: number[]
   tooltip?: (i: number) => ReactNode
@@ -89,6 +92,7 @@ export function ChartFrame({
   xTicks,
   yFormat = (v) => gwTick(v),
   yLabel,
+  xLabel,
   snap = [],
   tooltip,
   legend,
@@ -105,7 +109,7 @@ export function ChartFrame({
   // Hover only moves the crosshair and tip; the plot layer (many paths in Replay) re-renders only on new data or size.
   const layer = useMemo(() => children({ x, y, width, height: innerHeight }), [children, x, y, width, innerHeight])
   const interactive = !!tooltip && snap.length > 0
-  const xt = xTicks ? xTicks(x, width) : x.ticks(Math.max(2, width / 90)).map((v) => ({ value: v, label: String(v) }))
+  const xt: Tick[] = xTicks ? xTicks(x, width) : x.ticks(Math.max(2, width / 90)).map((v) => ({ value: v, label: String(v) }))
   const yt = y.ticks(5).map((v) => ({ value: v, label: yFormat(v) }))
   const at = active == null ? undefined : snap[active]
 
@@ -155,7 +159,7 @@ export function ChartFrame({
             <line className="axis-line" y1={innerHeight} y2={innerHeight} x2={width} />
             <g className="axis" transform={`translate(0,${innerHeight})`}>
               {xt.map((t) => (
-                <text key={t.value} x={x(t.value)} y={18} textAnchor="middle">
+                <text key={t.value} x={x(t.value)} y={18} textAnchor={t.anchor ?? 'middle'}>
                   {t.label}
                 </text>
               ))}
@@ -188,6 +192,7 @@ export function ChartFrame({
           </div>
         )}
       </div>
+      {xLabel && <div className="chart-xlabel">{xLabel}</div>}
       {legend && <figcaption className="chart-legend">{legend}</figcaption>}
     </figure>
   )

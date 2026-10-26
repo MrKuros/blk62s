@@ -1,11 +1,19 @@
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import type { UrlState } from '../hooks/useUrlState'
 import type { Meta } from '../lib/api'
 import { riskFromCosts } from '../lib/firm'
-import { riskLabel } from '../lib/format'
+import { addDays, dayLabel, riskLabel } from '../lib/format'
+import { DayPicker } from './DayPicker'
 import { SourceBadge } from './SourceBadge'
 
 type Set = (patch: Partial<UrlState>) => void
+
+const Label = ({ text, hint }: { text: string; hint: string }) => (
+  <span className="control-label" title={`${text}: ${hint}`}>
+    {text}
+    <span className="control-hint">{hint}</span>
+  </span>
+)
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/
 const N2EX_NOTE = 'The 09:30 run arrives 20 min before this gate; this assumes it can be downloaded in time.'
@@ -18,7 +26,7 @@ function Segmented<T extends string | number>({
 }: {
   label: string
   value: T
-  options: { value: T; label: string; title?: string }[]
+  options: { value: T; label: ReactNode; title?: string }[]
   onChange: (v: T) => void
 }) {
   return (
@@ -69,11 +77,9 @@ function AuctionControl({ state, meta, set }: { state: UrlState; meta: Meta; set
   ]
   return (
     <div className="control">
-      <span className="eyebrow" id="auction-label">
-        Auction gate (D-1, UK time)
-      </span>
+      <Label text="Gate closure" hint="last moment to submit day-ahead bids, D-1 UK time" />
       <div className="control-row">
-        <Segmented label="Auction gate" value={state.auction} options={options} onChange={(auction) => set({ auction })} />
+        <Segmented label="Gate closure" value={state.auction} options={options} onChange={(auction) => set({ auction })} />
         {state.auction === 'custom' && <GateTime t={state.t} set={set} />}
       </div>
     </div>
@@ -90,21 +96,21 @@ function RiskControl({ state, r, meta, set }: { state: UrlState; r: number; meta
     if (sh > 0 && su > 0) set({ risk: 'custom', r: riskFromCosts(sh, su) })
   }
   const options = [
-    { value: '1in10' as const, label: '1 in 10' },
-    { value: '1in20' as const, label: '1 in 20' },
-    { value: 'balanced' as const, label: 'Balanced', title: 'Short as often as long: the median outcome' },
+    { value: '1in10' as const, label: <>1 in 10 h <span className="seg-sub">P90</span></>, title: 'Accept a shortfall in 1 in 10 hours' },
+    { value: '1in20' as const, label: <>1 in 20 h <span className="seg-sub">P95</span></>, title: 'Accept a shortfall in 1 in 20 hours' },
+    { value: 'balanced' as const, label: <>Balanced <span className="seg-sub">P50</span></>, title: 'Short as often as long: the median outcome' },
   ]
   return (
     <div className="control">
-      <span className="eyebrow">How often can you accept being short?</span>
+      <Label text="Risk appetite" hint="accept a shortfall in…" />
       <div className="control-row">
         <Segmented
-          label="Accepted shortfall"
+          label="Risk appetite: accept a shortfall in"
           value={state.risk}
           options={options}
           onChange={(risk) => set({ risk })}
         />
-        {state.risk === 'custom' && <span className="chip num">{riskLabel(r)} hours</span>}
+        {state.risk === 'custom' && <span className="chip num">{riskLabel(r)} h · P{100 - r}</span>}
         <details className="advanced">
           <summary>Advanced</summary>
           <div className="popover">
@@ -143,16 +149,16 @@ function RiskControl({ state, r, meta, set }: { state: UrlState; r: number; meta
               </p>
             </fieldset>
             <fieldset>
-              <legend className="eyebrow">Data latency margin</legend>
+              <legend className="eyebrow">Download delay</legend>
               <Segmented
-                label="Data latency margin"
+                label="Download delay"
                 value={state.margin}
                 options={meta.margins.map((m) => ({ value: m as UrlState['margin'], label: `${m} min` }))}
                 onChange={(margin) => set({ margin })}
               />
               <p className="hint">
-                Treat runs published within this many minutes of the gate as not yet downloaded. 60 min tests runs only
-                becoming usable at the times Elexon's page lists, an hour after their publish time.
+                Ignore runs published less than this many minutes before gate closure. Choose 60 min to match the
+                availability times on Elexon's page.
               </p>
             </fieldset>
           </div>
@@ -162,51 +168,56 @@ function RiskControl({ state, r, meta, set }: { state: UrlState; r: number; meta
   )
 }
 
-export function TopBar({
-  state,
-  r,
-  meta,
-  apiDown,
-  set,
-}: {
-  state: UrlState
-  r: number
-  meta: Meta | undefined
-  apiDown: boolean
-  set: Set
-}) {
+export function Masthead({ meta, apiDown, live, set }: { meta: Meta | undefined; apiDown: boolean; live: boolean; set: Set }) {
   const openDrawer = (anchor?: string) => {
     set({ drawer: true })
     if (anchor) requestAnimationFrame(() => document.getElementById(anchor)?.scrollIntoView({ block: 'start' }))
   }
   return (
-    <header className="topbar">
-      <div className="topbar-inner">
+    <header className="masthead">
+      <div className="masthead-inner">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true" />
-          <div>
-            <p className="brand-name">Firm Wind</p>
-            <p className="brand-sub">
-              January 2026 replay · Elexon data ·{' '}
-              <button type="button" className="link" onClick={() => openDrawer('m-sources')}>
-                Sources
-              </button>
-            </p>
-          </div>
+          <p className="brand-name">Firm Wind</p>
+          <p className="brand-sub">
+            GB day-ahead wind position · {live ? 'Live, tomorrow' : 'January 2026 pilot'} ·{' '}
+            <button type="button" className="link" onClick={() => openDrawer('m-sources')}>
+              Elexon data
+            </button>
+          </p>
         </div>
-        {meta && (
-          <div className="controls">
-            <AuctionControl state={state} meta={meta} set={set} />
-            <RiskControl state={state} r={r} meta={meta} set={set} />
-          </div>
-        )}
-        <div className="topbar-end">
+        <div className="brand-end">
           <SourceBadge meta={meta} down={apiDown} />
-          <button type="button" className="btn btn-ghost" onClick={() => openDrawer()}>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => openDrawer()}>
             Methodology
           </button>
         </div>
       </div>
     </header>
+  )
+}
+
+/** The three inputs every view answers to: which day, which gate, how much risk. */
+const tomorrowUk = () => addDays(new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/London' }), 1)
+
+export function ControlBar({ state, r, meta, day, set }: { state: UrlState; r: number; meta: Meta; day: string; set: Set }) {
+  return (
+    <div className="controlbar" role="group" aria-label="Decision inputs">
+      <div className="controlbar-inner">
+        <div className="control">
+          <Label text="Delivery day" hint="the day the power is delivered" />
+          {/* The live view is always tomorrow; a pilot day picker there would put two delivery days on screen. */}
+          {state.tab === 'live' ? (
+            <span className="day-chip">
+              Tomorrow · <strong>{dayLabel(tomorrowUk())}</strong>
+            </span>
+          ) : (
+            <DayPicker days={meta.days} value={day} onChange={(d) => set({ day: d })} />
+          )}
+        </div>
+        <AuctionControl state={state} meta={meta} set={set} />
+        <RiskControl state={state} r={r} meta={meta} set={set} />
+      </div>
+    </div>
   )
 }

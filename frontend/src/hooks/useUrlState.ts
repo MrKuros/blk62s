@@ -6,8 +6,11 @@ export type AuctionChoice = 'epex' | 'n2ex' | 'custom'
 export type RiskChoice = '1in10' | '1in20' | 'balanced' | 'custom'
 export type Margin = 0 | 10 | 20 | 60
 export type CalibChoice = 'jan' | 'dec'
+export const TABS = ['decision', 'accuracy', 'firm', 'timing', 'live'] as const
+export type Tab = (typeof TABS)[number]
 
 export interface UrlState {
+  tab: Tab
   day: string
   auction: AuctionChoice
   t: string
@@ -21,6 +24,7 @@ export interface UrlState {
 }
 
 export const DEFAULTS: UrlState = {
+  tab: 'decision',
   day: '2026-01-12',
   auction: 'epex',
   t: '09:20',
@@ -53,6 +57,7 @@ export function parseState(search: string): UrlState {
   const r = Number(p.get('r'))
   const t = p.get('t')
   return {
+    tab: oneOf(p.get('tab') as Tab, TABS, DEFAULTS.tab),
     day: isDay(p.get('day')) ? p.get('day')! : DEFAULTS.day,
     auction: oneOf(p.get('auction') as AuctionChoice, ['epex', 'n2ex', 'custom'], DEFAULTS.auction),
     t: t && HHMM.test(t) ? t : DEFAULTS.t,
@@ -69,6 +74,7 @@ export function parseState(search: string): UrlState {
 /** Only non-default values go in the URL; `t` and `r` only when their custom mode is on. */
 export function serializeState(s: UrlState): string {
   const p = new URLSearchParams()
+  if (s.tab !== DEFAULTS.tab) p.set('tab', s.tab)
   if (s.day !== DEFAULTS.day) p.set('day', s.day)
   if (s.auction !== DEFAULTS.auction) p.set('auction', s.auction)
   if (s.auction === 'custom') p.set('t', s.t)
@@ -101,8 +107,8 @@ function subscribe(onChange: () => void): () => void {
 const getSearch = () => window.location.search
 
 /**
- * Apply a patch. A new day is a navigation (pushState, so Back returns to the previous day) and hides
- * the reveal again; every other control edits the current entry (replaceState).
+ * Apply a patch. A new day or tab is a navigation (pushState, so Back returns to it); a new day also hides the
+ * reveal again. Every other control edits the current entry (replaceState).
  */
 export function updateUrlState(patch: Partial<UrlState>): void {
   const current = parseState(getSearch())
@@ -111,7 +117,7 @@ export function updateUrlState(patch: Partial<UrlState>): void {
   const search = serializeState(next)
   if (search === serializeState(current)) return
   const href = `${window.location.pathname}${search}${window.location.hash}`
-  if (dayChanged) window.history.pushState(null, '', href)
+  if (dayChanged || next.tab !== current.tab) window.history.pushState(null, '', href)
   else window.history.replaceState(null, '', href)
   window.dispatchEvent(new Event(CHANGE))
 }

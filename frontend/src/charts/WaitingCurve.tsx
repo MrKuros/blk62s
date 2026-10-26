@@ -1,7 +1,7 @@
 import { scaleLinear } from 'd3-scale'
 import { line } from 'd3-shape'
 import type { components } from '../lib/api-types'
-import { gw, gwRange, mwRange, signedMw } from '../lib/format'
+import { biasGw, delta, gw, gwRange, mwRange } from '../lib/format'
 import { ChartFrame, gwTick, Key, TipRow } from './ChartFrame'
 
 type WaitingSlot = components['schemas']['WaitingSlot']
@@ -28,7 +28,7 @@ const axisTicks = (_: unknown, width: number) => {
   return Array.from({ length: (2 * DAY) / step + 1 }, (_, i) => {
     const m = i * step
     const label = m % DAY ? `${String((m % DAY) / 60).padStart(2, '0')}:00` : ['D-2', 'D-1', 'D'][m / DAY]
-    return { value: m, label: label ?? '' }
+    return { value: m, label: label ?? '', anchor: m === 2 * DAY ? ('end' as const) : undefined }
   })
 }
 
@@ -36,6 +36,7 @@ export function WaitingCurve({ slots, gates, gain }: Props) {
   const pts = slots.map((s) => ({ s, m: minutes(s.day_offset, s.local_time) })).sort((a, b) => a.m - b.m)
   const gateAt = gates.map((g) => ({ g, m: minutes(-1, g.local_time) })).sort((a, b) => a.m - b.m)
   const lastGate = gateAt.at(-1)?.m ?? 2 * DAY
+  const firstGate = gateAt[0]
   const yMax = scaleLinear()
     .domain([0, Math.max(1000, ...pts.map((p) => p.s.mae.hi))])
     .nice()
@@ -53,8 +54,8 @@ export function WaitingCurve({ slots, gates, gain }: Props) {
     return (
       <>
         <div className="chart-tip-title">{slotName(p.s)} run</div>
-        <TipRow className="s-waiting" label={`typical miss (${gwRange(mae.lo, mae.hi)})`} value={gw(mae.value)} />
-        <TipRow label={bias < 0 ? 'usually over' : 'usually under'} value={gw(Math.abs(bias))} />
+        <TipRow className="s-waiting" label={`mean absolute error (${gwRange(mae.lo, mae.hi)})`} value={gw(mae.value)} />
+        <TipRow label="forecast bias (+ = too high)" value={biasGw(bias)} />
         {unavailable(p.s) && <div className="tip-note">Not available day-ahead</div>}
       </>
     )
@@ -65,24 +66,25 @@ export function WaitingCurve({ slots, gates, gain }: Props) {
 
   return (
     <ChartFrame
-      ariaLabel={`Typical forecast miss for each run from D-2 to D-1 on the same delivery hours, with gate closures marked.${
-        best ? ` The best run available day-ahead is ${slotName(best.s)}, missing by ${gw(best.s.mae.value)} in a typical hour.` : ''
+      ariaLabel={`Mean absolute error of each forecast run from D-2 to D-1 on the same delivery hours, with gate closures marked.${
+        best ? ` The best run available day-ahead is ${slotName(best.s)}, with a mean absolute error of ${gw(best.s.mae.value)}.` : ''
       }`}
       xDomain={[0, 2 * DAY]}
       yDomain={[0, yMax]}
       xTicks={axisTicks}
       yFormat={(v) => gwTick(v)}
-      yLabel="Typical miss, GW"
+      yLabel="Mean absolute error, GW"
       snap={pts.map((p) => p.m)}
       tooltip={tooltip}
       legend={
         <>
-          <Key mark="dot" className="dot s-waiting" label="Typical miss, with 90% interval" />
+          <Key mark="dot" className="dot s-waiting" label="Mean absolute error, with 90% range" />
+          {gain && <Key mark="dot" className="dot s-waiting ring" label="Compared runs" />}
           <Key mark="area" className="post-gate" label="Not available day-ahead" />
           {gain && fromSlot && toSlot && (
-            <span className="legend-item">
-              Waiting from {slotName(fromSlot)} to {slotName(toSlot)} ({GATE_LABEL[gain.auction]}):{' '}
-              <span className="num">{signedMw(gain.diff.value)}</span> ({mwRange(gain.diff.lo, gain.diff.hi)})
+            <span className="legend-note">
+              Waiting from {slotName(fromSlot)} to {slotName(toSlot)} ({GATE_LABEL[gain.auction]}): error{' '}
+              {delta(gain.diff.value)} {gain.diff.value <= 0 ? 'smaller' : 'larger'} (saving 90% range {mwRange(-gain.diff.hi, -gain.diff.lo)})
             </span>
           )}
         </>
@@ -95,18 +97,28 @@ export function WaitingCurve({ slots, gates, gain }: Props) {
         return (
           <>
             <rect className="post-gate" x={x(lastGate)} width={x(2 * DAY) - x(lastGate)} height={height} />
-            <text className="direct-label" x={x(2 * DAY) - 6} y={26} textAnchor="end">
-              Not available day-ahead
-            </text>
-            {gateAt.map(({ g, m }, i) => (
-              <g key={g.auction}>
-                <line className="gate" x1={x(m)} x2={x(m)} y2={height} />
-                {/* Gates sit 30 min apart, so labels go either side of their lines. */}
-                <text className="direct-label" x={x(m) + (i ? 4 : -4)} y={10} textAnchor={i ? 'start' : 'end'}>
-                  {GATE_LABEL[g.auction]} {g.local_time}
+            {/* Narrow: the legend names the shading; in the plot it would collide with the gate labels. */}
+            {x(2 * DAY) - x(lastGate) > 170 && (
+              <text className="direct-label" x={x(2 * DAY) - 6} y={42} textAnchor="end">
+                Not available day-ahead
+              </text>
+            )}
+            {/* The two gates sit 30 min apart: one band, one stacked label, so the names never collide. */}
+            {firstGate && (
+              <>
+                <rect className="gate-band" x={x(firstGate.m)} width={Math.max(2, x(lastGate) - x(firstGate.m))} height={height} />
+                {gateAt.map(({ g, m }) => (
+                  <line key={g.auction} className="gate" x1={x(m)} x2={x(m)} y2={height} />
+                ))}
+                <text className="direct-label" x={x(firstGate.m) - 6} y={12} textAnchor="end">
+                  {gateAt.map(({ g }, i) => (
+                    <tspan key={g.auction} x={x(firstGate.m) - 6} dy={i ? 15 : 0}>
+                      {GATE_LABEL[g.auction]} {g.local_time}
+                    </tspan>
+                  ))}
                 </text>
-              </g>
-            ))}
+              </>
+            )}
             <path className="line s-waiting-line" d={path(pts) ?? ''} />
             {pts.map(({ s, m }) => (
               <g key={s.id} className={unavailable(s) ? 'faded' : undefined}>

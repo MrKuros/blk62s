@@ -4,7 +4,7 @@ This document explains how Firm Wind turns two Elexon datasets into an answer fo
 
 The values the app computes (MAE, bias, coverage, gains, run differences and so on) are deliberately **not** copied here, because they would drift whenever the analysis or data changes. Where this document says *see app*, the number appears in the UI, the API (`/api/docs`) and `scripts/story_numbers.py`, and is frozen by the golden test. Facts quoted from external sources are cited.
 
-Sign convention throughout: **error = actual − forecast**. A negative error means the forecast was too high, and the UI phrases that as "over by X".
+Sign convention in the analysis: **error = actual − forecast**, so a negative error means the forecast was too high. The UI shows the opposite sign as **forecast bias = forecast − actual**, where positive means the forecast was too high.
 
 ---
 
@@ -23,7 +23,7 @@ A purchase for delivery day **D** is fixed at an auction gate on **D-1**. Every 
 
  EPEX buyer: runs with publishTime < 09:20 D-1 → decision run 07:30 D-1 (January)
  N2EX buyer: runs with publishTime < 09:50 D-1 → decision run 09:30 D-1 (January)
- Runs at or after the gate: drawn dashed as "too late", never used for the day-ahead decision or its statistics. Section D scores them only as context, to show what waiting past the gate would have bought.
+ Runs at or after the gate: drawn dashed as "too late", never used for the day-ahead decision or its statistics. The Timing tab scores them only as context, to show what waiting past the gate would have bought.
  Actuals known at the gate: FUELHH half-hours published before it (up to about 09:00 D-1).
  D-1 is incomplete at the gate, so training for day D uses delivery days ≤ D-2 only.
 ```
@@ -53,7 +53,7 @@ Both series come from the Elexon BMRS Insights API (no key needed): the `WINDFOR
 
 ### Coverage and the over-forecast
 - **Same fleet by definition.** Both series cover wind farms visible to NESO with operational metering, which is mostly transmission-connected. Embedded or distribution-connected wind is in neither. NESO estimates the operationally metered fleet at about 82% of GB wind as of 2025 ([BMRS, generation by fuel type](https://bmrs.elexon.co.uk/generation-by-fuel-type)). The app reports MW only and no capacity factors, because no cited capacity denominator matches the FUELHH fleet exactly.
-- **Different measure.** WINDFOR runs consistently above FUELHH, and the gap grows with forecast level. Delivered wind also behaves as if it had a ceiling well below the highest forecasts (*see app*: the accuracy chart marks the highest delivered value). The **likely cause** is curtailment: FUELHH meters output *after* balancing-mechanism turn-down, which is concentrated in high-wind hours in Scotland ([SmartestEnergy](https://www.smartestenergy.com/en_GB/insights/the-informer/cost-of-curtailment-hits-1bn/)), while WINDFOR may forecast available, unconstrained output. **This is unverified.** No Elexon or NESO document states WINDFOR's constraint basis, and the app does not test it against bid-offer acceptance volumes (see §12).
+- **Different measure.** WINDFOR runs consistently above FUELHH, and the gap grows with forecast level. Delivered wind also behaves as if it had a ceiling well below the highest forecasts (*see app*: the Forecast accuracy tab marks the highest actual generation). The **likely cause** is curtailment: FUELHH meters output *after* balancing-mechanism turn-down, which is concentrated in high-wind hours in Scotland ([SmartestEnergy](https://www.smartestenergy.com/en_GB/insights/the-informer/cost-of-curtailment-hits-1bn/)), while WINDFOR may forecast available, unconstrained output. **This is unverified.** No Elexon or NESO document states WINDFOR's constraint basis, and the app does not test it against bid-offer acceptance volumes (see §12).
 - **Why the buyer should still target FUELHH.** Metered output is the wind that actually arrives. Whatever the cause, a firm-wind number calibrated against FUELHH is the right number for procurement.
 
 ### Data integrity
@@ -87,7 +87,7 @@ For delivery day D and cutoff *c* (gate minus margin, in UTC):
 2. Select the **latest** `publishTime` among them.
 3. Restrict that run to the delivery hours of D.
 
-Lead time is `startTime − publishTime`. The replay also draws every run published from D-2 00:00 to D-1 23:59 local. Earlier runs are drawn faint; runs at or after the cutoff are dashed and labelled "too late". The answer card shows the difference between the EPEX and N2EX decision runs in MW; section D shows the difference in their typical miss.
+Lead time (hours ahead) is `startTime − publishTime`. The Decision tab's gate timeline shows every forecast run from D-2 to delivery; runs at or after the cutoff are marked "too late". The Decision tab states which run the EPEX and N2EX gates each use; the Timing tab shows the difference in their mean absolute error.
 
 ---
 
@@ -97,12 +97,12 @@ Computed over the hourly pairs of the decision run (n = hours, reported every ti
 
 | Metric | Definition | UI label |
 |---|---|---|
-| MAE | mean \|actual − forecast\| | Typical miss |
-| Bias | mean(actual − forecast) | Usually over by (sign flipped for the phrase) |
-| WAPE | Σ\|actual − forecast\| / Σ actual | Miss as % of delivered |
+| MAE | mean \|actual − forecast\| | Mean absolute error |
+| Bias | mean(actual − forecast) | Forecast bias (shown as forecast − actual, + = too high) |
+| WAPE | Σ\|actual − forecast\| / Σ actual | Error as % of actual generation |
 | RMSE | √mean((actual − forecast)²) | drawer only |
-| Over-forecast share | share of hours with actual < forecast | Accuracy section ("… of hours") |
-| Correlation | Pearson r between forecast and actual | Accuracy section (watch list) |
+| Over-forecast share | share of hours with actual < forecast | Forecast accuracy tab ("forecast too high in … of hours") |
+| Correlation | Pearson r between forecast and actual | Forecast accuracy tab |
 
 MAPE is not used. It explodes when wind is low, and January happens not to have hours low enough to show that, so it would look misleadingly stable.
 
@@ -141,7 +141,7 @@ It was chosen in advance: it is scale-free (the haircut grows with the forecast,
 - **Hours covered:** the share of hours with actual ≥ firm.
 - **Whole days covered:** the share of days on which *every* hour was covered. Errors cluster by day, so this is much lower than hourly coverage, and both are always shown.
 - **Shortfall:** the energy by which delivered wind fell below the firm value, nationally.
-- **Plan beyond wind:** Σ(raw forecast − firm) / 1000 GWh. This is the national-scale energy to secure because forecast wind may not arrive. A buyer's own exposure scales with their share.
+- **Shortfall energy vs P90 plan:** shown on the Firm wind (P90) tab, the national GWh by which actual generation fell below the P90 wind level the buyer planned on. A buyer's own exposure scales with their share. The per-hour gap the buyer holds back is forecast minus P90.
 - **Reliability chart:** target (50 to 99%) against achieved coverage, for hours and for whole days. If the method is calibrated, the lines sit on the diagonal.
 - **Choosing *r* from costs:** in Advanced mode the buyer enters the cost of being short and the cost of surplus, and *r* = 100 · surplus / (short + surplus), clamped to 1 to 50. This is the newsvendor critical ratio: the more expensive a shortfall, the less often you accept one.
 
@@ -149,13 +149,13 @@ It was chosen in advance: it is scale-free (the haircut grows with the forecast,
 A day whose training window has **fewer than 5 days** is marked *calibrating*. It shows the raw forecast with a badge and is **excluded from coverage statistics**. The number of days and hours behind every coverage figure is reported. With the January window this covers roughly the first week of deliveries (*see app*).
 
 ### "Include December 2025 history"
-The default calibration window starts on 2 Jan 2026, so it uses only January-relevant data. The toggle moves `train_start` to **1 Dec 2025** and reruns the same walk-forward. That is history a trader would really have held at the time, still Elexon data only, and it removes the warm-up. The methodology drawer shows both results side by side, scored on the same days (those after the January-only warm-up), so the columns differ only in training history. On those days December history barely changes the corrected miss. December has its own seasonality and curtailment pattern, so neither window is assumed to be "right".
+The default calibration window starts on 2 Jan 2026, so it uses only January-relevant data. The toggle moves `train_start` to **1 Dec 2025** and reruns the same walk-forward. That is history a trader would really have held at the time, still Elexon data only, and it removes the warm-up. The methodology drawer shows both results side by side, scored on the same days (those after the January-only warm-up), so the columns differ only in training history. On those days December history barely changes the corrected forecast's mean absolute error. December has its own seasonality and curtailment pattern, so neither window is assumed to be "right".
 
 ---
 
 ## 8. Value of waiting
 
-The question: how much does the typical miss shrink if you decide later?
+The question (Timing tab): how much does the mean absolute error shrink if you decide later?
 
 - **Slots:** the eight nominal WINDFOR times on D-2 and on D-1, 16 slots from D-2 02:30 to D-1 22:30. A slot's cutoff is its nominal local time **+ 59 minutes**, so a late run, such as the 12:25 run on 15 Jan, is assigned to its own slot (11:30) instead of being lost.
 - **Common hours.** Each slot is scored only on hours that **every** slot covers. D-2 runs stop at 21:00 on D, so the comparison is like for like and not biased by D-1 runs covering more hours.
@@ -168,11 +168,11 @@ The question: how much does the typical miss shrink if you decide later?
 
 - **Persistence:** the last FUELHH value whose `publishTime` is before the cutoff, held flat across D. It shows how much skill the forecast adds over "tomorrow looks like now".
 - **D-2 run:** the same-time run on D-2, scored on the 22 hours it covers, against the decision run on the same 22 hours.
-- **Delivered ceiling:** the highest hourly actual known before the cutoff. It feeds the "forecast above anything delivered so far" signal.
+- **Delivered ceiling:** the highest hourly actual known before the cutoff. It feeds the above-ceiling signal.
 
 ---
 
-## 10. Signals and watch list
+## 10. Signals and the Why panel
 
 The signals are deterministic templates filled from computed numbers. There is no free text and no LLM. Each rule returns an id and parameters, and the frontend renders the sentence:
 
@@ -184,14 +184,14 @@ The signals are deterministic templates filled from computed numbers. There is n
 | Correction | the correction lowers the forecast by ≥ 1 GW on average |
 | Calibrating | the day is still in warm-up |
 
-The headline signal is the first rule that fires, in this order (a stale feed outranks everything, because every other number is then out of date). The rest go to the watch list.
+The headline signal is the first rule that fires, in this order (a stale feed outranks everything, because every other number is then out of date). A stale feed is shown in the answer hero as "Forecast feed frozen"; the other signals go to the Decision tab's Why panel.
 
 ---
 
 ## 11. Data caveats
 
 ### 28 January 2026: a NESO IT incident, not weather
-NESO's January 2026 reported-metrics document attributes the month's peak absolute day-ahead wind-forecast error, **4.7 GW on 28 Jan, settlement period 44**, to an IT ingestion failure on 27–28 Jan ([NESO reported metrics, Jan 2026](https://www.neso.energy/document/377601/download)). It is also one of the worst days in the app's own data (*see app*). The app keeps it in, because a buyer would have faced it. Firm-wind and coverage results are shown **with and without** 28 Jan, and the replay pins the day. The bad run could not be spotted from its level or as a revision, because it matched the earlier runs exactly: the feed had frozen, and the 28 Jan decision run repeated every run since 26 Jan 18:30 UTC. That freeze was visible before the gate, so the stale-feed signal (§10) fires on 28 Jan.
+NESO's January 2026 reported-metrics document attributes the month's peak absolute day-ahead wind-forecast error, **4.7 GW on 28 Jan, settlement period 44**, to an IT ingestion failure on 27–28 Jan ([NESO reported metrics, Jan 2026](https://www.neso.energy/document/377601/download)). It is also one of the worst days in the app's own data (*see app*). The app keeps it in, because a buyer would have faced it. P90 wind and coverage results are shown **with and without** 28 Jan. The bad run could not be spotted from its level or as a revision, because it matched the earlier runs exactly: the feed had frozen, and the 28 Jan decision run repeated every run since 26 Jan 18:30 UTC. That freeze was visible before the gate, so on 28 Jan the UI flags "Forecast feed frozen" (§10); NESO only confirmed the IT ingestion failure later.
 
 ### The NESO benchmark is not comparable
 NESO's own day-ahead wind metric (RIIO-2 Metric 1C) was **4.99% of capacity for January 2026** (same source). It differs from this app's error in several ways:
@@ -206,7 +206,7 @@ The app's error is therefore curtailment-inclusive and reads worse by constructi
 ## 12. Limitations and next steps
 
 **Limitations**
-- **One month.** 31 delivery days give wide CIs (shown). Seasonality, curtailment patterns and the forecast itself change through the year, so the January calibration should not be carried into summer. Section E recalibrates on the trailing 30 days for this reason.
+- **One month.** 31 delivery days give wide CIs (shown). Seasonality, curtailment patterns and the forecast itself change through the year, so the January calibration should not be carried into summer. The Tomorrow (live) tab recalibrates on the trailing 30 days for this reason.
 - **Over-forecast cause unverified.** Without balancing-mechanism data the app cannot separate forecast skill from turn-down.
 - **Availability of runs.** `publishTime` is taken as the time a run became available. The N2EX case (the 09:30 run, 20 minutes before close) depends on this, and the latency margin lets the buyer stress it: at 60 minutes N2EX falls back to the 07:30 run.
 - **FUELHH revisions.** Whether Elexon revises a value after first publication is unverified. The live hash check would flag it as *changed*.
@@ -215,5 +215,5 @@ The app's error is therefore curtailment-inclusive and reads worse by constructi
 
 **Next steps**
 1. **Curtailment via BOALF.** Sum wind BM-unit bid-offer acceptances for the worst hours, for example the night of 11–12 Jan, to test the curtailment explanation. Then model delivered wind as forecast minus expected turn-down.
-2. **Intraday re-optimisation.** Section D shows that later runs are more accurate. A buyer could trade the residual in intraday markets using post-gate runs.
-3. **Other fuels and demand.** Solar and demand forecasts would turn "wind you can count on" into "residual volume to buy". They are outside this brief, which is limited to Elexon wind data.
+2. **Intraday re-optimisation.** The Timing tab shows that later runs are more accurate. A buyer could trade the residual in intraday markets using post-gate runs.
+3. **Other fuels and demand.** Solar and demand forecasts would turn "P90 wind" into "residual volume to buy". They are outside this brief, which is limited to Elexon wind data.

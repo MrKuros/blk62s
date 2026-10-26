@@ -4,7 +4,6 @@ import {
   coverage,
   type FirmDayInput,
   firmHours,
-  planGWh,
   reliabilityCurve,
   RISK_PRESETS,
   riskFromCosts,
@@ -93,10 +92,6 @@ describe('firm wind', () => {
     expect(riskFromCosts(1, 9)).toBe(50) // capped: never plan to be short more often than not
     expect(riskFromCosts(1000, 1)).toBe(1)
     expect(riskFromCosts(0, 0)).toBe(RISK_PRESETS.balanced)
-  })
-
-  it('sums the plan beyond wind in GWh', () => {
-    expect(planGWh([10000, 12000, null], [6000, 7000, 5000])).toBeCloseTo(9)
   })
 })
 

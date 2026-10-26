@@ -2,22 +2,17 @@ import type { ReactNode } from 'react'
 
 interface Props {
   id: string
-  letter: string
-  eyebrow: string
   title: string
   lede?: ReactNode
   aside?: ReactNode
   children: ReactNode
 }
 
-export function Section({ id, letter, eyebrow, title, lede, aside, children }: Props) {
+export function Section({ id, title, lede, aside, children }: Props) {
   return (
-    <section className="section" id={id} aria-labelledby={`${id}-title`}>
+    <section className="section" aria-labelledby={`${id}-title`}>
       <header className="section-head">
         <div>
-          <p className="eyebrow eyebrow-brand">
-            <span className="section-letter">{letter}</span> {eyebrow}
-          </p>
           <h2 id={`${id}-title`}>{title}</h2>
           {lede && <p className="lede">{lede}</p>}
         </div>
@@ -28,25 +23,25 @@ export function Section({ id, letter, eyebrow, title, lede, aside, children }: P
   )
 }
 
-/** Main chart column plus the Signal / Watch list rail. */
+/** Main chart column plus a notes rail. */
 export function Split({ main, rail }: { main: ReactNode; rail: ReactNode }) {
   return (
     <div className="split">
       <div className="split-main">{main}</div>
-      <aside className="rail">{rail}</aside>
+      <div className="rail">{rail}</div>
     </div>
   )
 }
 
 export function Panel({
-  eyebrow,
   title,
+  hint,
   actions,
   children,
   foot,
 }: {
-  eyebrow: string
-  title?: ReactNode
+  title: ReactNode
+  hint?: ReactNode
   actions?: ReactNode
   children: ReactNode
   foot?: ReactNode
@@ -55,8 +50,8 @@ export function Panel({
     <div className="panel">
       <div className="panel-head">
         <div>
-          <p className="eyebrow">{eyebrow}</p>
-          {title && <h3 className="panel-title">{title}</h3>}
+          <h3 className="panel-title">{title}</h3>
+          {hint && <p className="panel-hint">{hint}</p>}
         </div>
         {actions && <div className="panel-actions">{actions}</div>}
       </div>

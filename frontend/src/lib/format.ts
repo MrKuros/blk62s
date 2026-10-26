@@ -26,6 +26,17 @@ export const pct = (frac: Num, dp = 0): string => (ok(frac) ? `${fixed(frac * 10
 export const signedPct = (frac: Num, dp = 0): string => (ok(frac) ? `${signed(frac * 100, dp)}%` : DASH)
 export const gwh = (v: Num, dp = 1): string => (ok(v) ? `${fixed(v, dp)} GWh` : DASH)
 
+/** A change between two levels: MW integers under 1 GW, GW at 1 dp above, always signed. */
+export const signedDelta = (v: Num): string => (ok(v) && Math.abs(v) >= 999.5 ? signedGw(v) : signedMw(v))
+/** The same, unsigned, for sentences that carry the direction in words ("error 392 MW smaller"). */
+export const delta = (v: Num): string => (ok(v) && Math.abs(v) >= 999.5 ? gw(Math.abs(v)) : mw(ok(v) ? Math.abs(v) : v))
+
+/** The one user-facing error convention: forecast minus actual, so + means the forecast was too high. The API sends
+ * errors as actual minus forecast; every screen goes through this. */
+export const overForecast = (actualMinusForecast: Num): number | null =>
+  ok(actualMinusForecast) ? -actualMinusForecast : null
+export const biasGw = (actualMinusForecast: Num, dp = 1): string => signedGw(overForecast(actualMinusForecast), dp)
+
 /** "1.6–2.4 GW" for a CI given in MW; the en dash makes negative ranges read "−2.2 to −1.3 GW". */
 export function gwRange(lo: Num, hi: Num, dp = 1): string {
   if (!ok(lo) || !ok(hi)) return DASH
@@ -37,7 +48,7 @@ export function gwRange(lo: Num, hi: Num, dp = 1): string {
 export function mwRange(lo: Num, hi: Num): string {
   if (!ok(lo) || !ok(hi)) return DASH
   const sep = lo < 0 || hi < 0 ? ' to ' : '–'
-  return `${signed(lo, 0)}${sep}${signed(hi, 0)} MW`
+  return `${fixed(lo, 0)}${sep}${fixed(hi, 0)} MW`
 }
 
 const timeFmt = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })
@@ -87,16 +98,34 @@ export const dayShort = (day: string | null | undefined): string => {
   return d ? dayShortFmt.format(d) : DASH
 }
 
-/** UTC epoch ms of 00:00 UK time on a YYYY-MM-DD day. The UK offset at 00:00 UTC on that day is the one in force
- * at UK midnight, since the clocks change at 01:00 UTC. */
-export function ukMidnight(day: string): number {
-  const utc = Date.parse(`${day}T00:00:00Z`)
-  const wall = Date.parse(`${new Date(utc).toLocaleString('sv-SE', { timeZone: TZ }).replace(' ', 'T')}Z`)
-  return utc - (wall - utc)
+/** UTC epoch ms of a UK wall-clock time (HH:MM) on a YYYY-MM-DD day: guess the instant as if UTC, then remove the UK
+ * offset in force at the guess. Exact except inside the hour the clocks skip in spring. */
+export function ukWallTime(day: string, hhmm: string): number {
+  const guess = Date.parse(`${day}T${hhmm}:00Z`)
+  const wall = Date.parse(`${new Date(guess).toLocaleString('sv-SE', { timeZone: TZ }).replace(' ', 'T')}Z`)
+  return guess - (wall - guess)
 }
+
+/** UTC epoch ms of 00:00 UK time on a YYYY-MM-DD day. The clocks change at 01:00 UTC, so the offset at the guess is the
+ * one in force at UK midnight. */
+export const ukMidnight = (day: string): number => ukWallTime(day, '00:00')
+
+/** The YYYY-MM-DD calendar day `n` days from `day`. */
+export const addDays = (day: string, n: number): string =>
+  new Date(Date.parse(`${day}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10)
 
 export const leadRange = (min: Num, max: Num): string =>
   ok(min) && ok(max) ? `${Math.round(min)}–${Math.round(max)} h ahead` : DASH
+
+/** "P90" for a 10% accepted shortfall: the level actual wind beat in 90% of past hours. */
+export const pLabel = (r: number): string => `P${100 - r}`
+
+/** "9 of 10" hours beat the firm level at 10% shortfall; "half the" at 50%. Callers append "hours". */
+export function beatLabel(r: number): string {
+  if (r === 50) return 'half the'
+  const n = 100 / r
+  return Number.isInteger(n) ? `${n - 1} of ${n}` : `${100 - r} of 100`
+}
 
 /** "1 in 10" for 10%, "1 in 2" for 50%, "30 in 100" for 30%; callers append the noun ("hours"). */
 export function riskLabel(r: number): string {

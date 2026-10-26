@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { Sig } from './api'
-import { signalText } from './signals'
+import { signalText, staleFeed } from './signals'
 
 const sig = (id: string, params: Sig['params'] = {}) => ({ id, params }) as Sig
 
 describe('signalText', () => {
   it('renders the ceiling rule with its numbers', () => {
     const s = signalText(sig('above_ceiling', { hours: 23, ceiling_mw: 16638 }))
-    expect(s?.title).toMatch(/above anything delivered/)
+    expect(s?.title).toMatch(/above any wind seen so far/)
     expect(s?.text).toContain('16.6 GW for 23 h')
   })
 
@@ -40,5 +40,14 @@ describe('signalText', () => {
     expect(signalText(sig('above_ceiling', { hours: 3 }))).toBeNull()
     expect(signalText(sig('correction', { mw: 'lots' }))).toBeNull()
     expect(signalText(null)).toBeNull()
+  })
+
+  it('finds the frozen-feed signal among the main signal and watch list', () => {
+    expect(staleFeed([sig('correction', { mw: 1 }), sig('run_jump', { runs: 5, since: '2026-01-26T18:30:00Z' })])).toEqual({
+      runs: 5,
+      since: '2026-01-26T18:30:00Z',
+    })
+    expect(staleFeed([null, sig('revision', { delta_mw: 1 })])).toBeNull()
+    expect(staleFeed([sig('run_jump', { runs: 5 })])).toBeNull()
   })
 })

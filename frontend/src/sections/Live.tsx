@@ -1,18 +1,18 @@
 import { LineBand, type Series } from '../charts/LineBand'
-import { Kpi, KpiStrip } from '../components/Kpi'
+import { AnswerHero } from '../components/AnswerHero'
+import { Notes } from '../components/Notes'
 import { Panel, Section, Split } from '../components/Section'
-import { SignalCard } from '../components/SignalCard'
 import { Await } from '../components/States'
 import { useLive } from '../hooks/queries'
 import type { Live as LiveData } from '../lib/api'
 import { band, firmHours, mean } from '../lib/firm'
-import { dayLabel, dayShort, gateLabel, gw, leadRange, riskLabel, ukDateTime, ukTime } from '../lib/format'
+import { dayLabel, dayShort, gateLabel, pLabel, ukDateTime } from '../lib/format'
 
 function Unavailable({ d }: { d: LiveData }) {
   return (
     <div className="unavailable" role="status">
       <p className="eyebrow">Live preview unavailable</p>
-      <p>{d.message ?? "Elexon couldn't be reached just now."} The January pilot above is unaffected.</p>
+      <p>{d.message ?? "Elexon couldn't be reached just now."} The January pilot is unaffected.</p>
       <p className="muted">It retries every minute.</p>
     </div>
   )
@@ -27,7 +27,8 @@ function Body({ d, r }: { d: LiveData; r: number }) {
   const firm = q ? firmHours(corrected, q, r) : null
   const series: Series[] = [{ id: 'raw', style: 'raw', points: points(d.hours.map((h) => h.raw)) }]
   if (q) series.push({ id: 'corrected', style: 'corrected', points: points(corrected) })
-  const bandPts = q
+  if (firm) series.push({ id: 'firm', style: 'firm', points: points(firm) })
+  const bandPts = q && r < 50
     ? band(corrected, q, r).flatMap((b, i) => (b.lo == null || b.hi == null ? [] : [{ t: t[i]!, lo: b.lo, hi: b.hi }]))
     : undefined
   const run = d.decision_run
@@ -36,39 +37,48 @@ function Body({ d, r }: { d: LiveData; r: number }) {
 
   return (
     <>
-      <KpiStrip>
-        <Kpi label="Delivery day" value={dayShort(d.target_day)} sub={dayLabel(d.target_day)} />
-        <Kpi
-          label={d.gate_passed ? 'Run used' : 'Latest run so far'}
-          value={run ? ukTime(run.publish_time) : '–'}
-          sub={run ? leadRange(run.hours_ahead_min, run.hours_ahead_max) : 'no run yet'}
-        />
-        <Kpi label="Forecast" value={gw(mean(d.hours.map((h) => h.raw)))} sub="average" />
-        <Kpi label="Count on" value={firm ? gw(mean(firm)) : '–'} sub={firm ? `short in ${riskLabel(r)} hours` : 'not calibrated'} />
-      </KpiStrip>
+      <AnswerHero
+        r={r}
+        forecastAvg={mean(d.hours.map((h) => h.raw))}
+        forecastPeak={Math.max(...d.hours.map((h) => h.raw ?? -Infinity))}
+        firm={firm}
+        run={run}
+        trainDays={cal?.train_days ?? 0}
+        gatePassed={d.gate_passed}
+      />
       <Split
         main={
           <Panel
-            eyebrow={`Tomorrow at the ${gate} gate`}
             title={
               d.gate_passed
-                ? `The gate closed at ${ukTime(d.cutoff_utc)}; this is the run it used`
-                : `Gate closes at ${ukTime(d.cutoff_utc)}; later runs may still replace this one`
+                ? `Gate closure ${gate} has passed: this is the run it used`
+                : `Gate closure ${gate} is still ahead: later runs may replace this one`
             }
-            foot={`Hours in UK time. Fetched ${ukDateTime(d.fetched_at)}${d.latest_publish_time ? `; latest run published ${ukDateTime(d.latest_publish_time)}` : ''}.`}
+            hint="Hourly GB wind, GW, UK time."
+            foot={`Fetched ${ukDateTime(d.fetched_at)}${d.latest_publish_time ? `; latest run published ${ukDateTime(d.latest_publish_time)}` : ''}.`}
           >
-            <LineBand series={series} band={bandPts} ariaLabel={`Live wind forecast for ${dayShort(d.target_day)}`} />
+            <LineBand
+              series={series}
+              band={bandPts}
+              height={300}
+              labels={{ raw: d.gate_passed ? 'Forecast run used' : 'Latest forecast run', firm: `${pLabel(r)} wind (${r >= 50 ? 'central' : 'count on'})` }}
+              bandLabel={`Likely range (lower edge = ${pLabel(r)})`}
+              ariaLabel={`Live wind forecast for ${dayShort(d.target_day)}`}
+            />
           </Panel>
         }
         rail={
-          <SignalCard eyebrow="Live preview" title="Beyond the January pilot">
-            <p>
-              The same pipeline on live Elexon data. The correction and band are calibrated on the trailing 30 days
-              {cal?.train_window ? ` (${dayShort(cal.train_window[0])} to ${dayShort(cal.train_window[1])})` : ''}, not
-              January: seasons and curtailment differ.
-            </p>
-            <p className="muted">Refreshed about every 30 minutes.</p>
-          </SignalCard>
+          <Notes
+            title="Beyond the January pilot"
+            items={[
+              { title: 'Same pipeline, live data', text: 'Elexon WINDFOR and FUELHH as published today, using the last run before gate closure, as in January.' },
+              {
+                title: 'Calibrated on the last 30 days',
+                text: `${cal?.train_window ? `${dayShort(cal.train_window[0])} to ${dayShort(cal.train_window[1])}, ` : ''}not January: seasons and curtailment differ.`,
+              },
+              { title: 'Refreshes itself', text: 'About every 30 minutes, and again at gate closure.' },
+            ]}
+          />
         }
       />
     </>
@@ -80,10 +90,8 @@ export function Live({ cutoff, margin, r }: { cutoff: string; margin: number; r:
   return (
     <Section
       id="live"
-      letter="E"
-      eyebrow="Tomorrow, live"
-      title="Tomorrow, live (beyond the January pilot)"
-      lede="Proof the method isn't hard-wired to January: tomorrow's latest forecast, corrected and banded the same way."
+      title={live.data ? `Tomorrow, ${dayLabel(live.data.target_day)}` : 'Tomorrow'}
+      lede="Live, beyond the January 2026 pilot: today's latest forecast run for tomorrow, corrected the same way."
     >
       <Await query={live} height={440}>
         {(d) => <Body d={d} r={r} />}

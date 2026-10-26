@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  biasGw,
   DASH,
+  delta,
+  signedDelta,
   dayLabel,
   gw,
   gwRange,
@@ -48,7 +51,8 @@ describe('format', () => {
   it('formats ranges, switching to "to" when negative', () => {
     expect(gwRange(1632, 2442)).toBe('1.6–2.4 GW')
     expect(gwRange(-2172, -1302)).toBe('−2.2 to −1.3 GW')
-    expect(mwRange(-61, 16)).toBe('−61 to +16 MW')
+    expect(mwRange(-61, 16)).toBe('−61 to 16 MW')
+    expect(mwRange(73, 731)).toBe('73–731 MW')
   })
 
   it('renders UK local time across the clock change', () => {
@@ -78,5 +82,21 @@ describe('format', () => {
     expect(new Date(ukMidnight('2026-07-13')).toISOString()).toBe('2026-07-12T23:00:00.000Z')
     expect(new Date(ukMidnight('2026-03-29')).toISOString()).toBe('2026-03-29T00:00:00.000Z')
     expect(new Date(ukMidnight('2026-10-25')).toISOString()).toBe('2026-10-24T23:00:00.000Z')
+  })
+
+  it('shows changes under 1 GW in MW and larger ones in GW', () => {
+    expect(signedDelta(-392)).toBe('−392 MW')
+    expect(signedDelta(0)).toBe('0 MW')
+    expect(signedDelta(33)).toBe('+33 MW')
+    expect(signedDelta(-2383)).toBe('−2.4 GW')
+    expect(delta(-392)).toBe('392 MW')
+    expect(delta(1500)).toBe('1.5 GW')
+    expect(delta(null)).toBe(DASH)
+  })
+
+  it('shows bias as forecast minus actual, + = forecast too high', () => {
+    expect(biasGw(-1748)).toBe('+1.7 GW')
+    expect(biasGw(700)).toBe('−0.7 GW')
+    expect(biasGw(null)).toBe(DASH)
   })
 })

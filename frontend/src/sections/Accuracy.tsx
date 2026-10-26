@@ -1,20 +1,18 @@
-import { DayStrip } from '../charts/DayStrip'
+import { ErrorCalendar } from '../charts/ErrorCalendar'
 import { LevelBias } from '../charts/LevelBias'
+import { SHOWCASE } from '../components/DayPicker'
 import { Kpi, KpiStrip } from '../components/Kpi'
-import { Panel, Section, Split } from '../components/Section'
-import { SignalCard } from '../components/SignalCard'
+import { Notes } from '../components/Notes'
+import { Panel, Section } from '../components/Section'
 import { Await } from '../components/States'
-import { WatchList } from '../components/WatchList'
 import { type AnalysisParams, useAccuracy } from '../hooks/queries'
 import type { Accuracy as AccuracyData, Meta } from '../lib/api'
 import { mean } from '../lib/firm'
-import { dayShort, gw, gwRange, pct } from '../lib/format'
-import { SHOWCASE } from './Replay'
+import { biasGw, dayShort, gw, gwRange, overForecast, pct } from '../lib/format'
 
 const ciPct = (lo: number, hi: number) => `${pct(lo)}–${pct(hi)}`
 
 function Body({ a, meta, day, onDay }: { a: AccuracyData; meta: Meta; day: string; onDay: (d: string) => void }) {
-  const over = -a.bias.value
   const meanForecast = mean(a.days.map((d) => d.mean_forecast_mw))
   const top = a.by_level.at(-1)
   const levelHours = a.by_level.reduce((n, b) => n + b.n, 0)
@@ -25,72 +23,70 @@ function Body({ a, meta, day, onDay }: { a: AccuracyData; meta: Meta; day: strin
   return (
     <>
       <KpiStrip>
-        <Kpi label="Typical miss" value={gw(a.mae.value)} sub={`90% CI ${gwRange(a.mae.lo, a.mae.hi)}`} />
         <Kpi
-          label="Usually over by"
-          value={gw(over)}
-          sub={`90% CI ${gwRange(-a.bias.hi, -a.bias.lo)} · ${pct(a.over_share)} of hours`}
+          label="Mean absolute error"
+          hint={`average size of the miss, either direction · all ${a.n_days} days`}
+          value={gw(a.mae.value)}
+          sub={`90% range ${gwRange(a.mae.lo, a.mae.hi)}`}
         />
         <Kpi
-          label="Corrected typical miss"
+          label="Forecast bias"
+          hint="forecast minus actual, averaged; + means forecast too high"
+          value={biasGw(a.bias.value)}
+          sub={`90% range ${gwRange(-a.bias.hi, -a.bias.lo)} · forecast too high in ${pct(a.over_share)} of hours`}
+        />
+        <Kpi
+          label="Corrected forecast error"
+          hint={`mean absolute error after adjusting by past days · ${c.n_days} days after warm-up`}
           value={gw(c.corrected_mae.value)}
-          sub={`vs ${gw(c.raw_mae.value)} raw on the same ${c.n_days} days · CI ${gwRange(c.corrected_mae.lo, c.corrected_mae.hi)}`}
+          sub={`Published forecast on the same ${c.n_days} days: ${gw(c.raw_mae.value)}. Correction cuts it by ${pct(cut)}.`}
         />
         <Kpi
-          label="Miss as % of delivered"
+          label="Error as a share of generation"
+          hint="total miss over total actual energy"
           value={pct(a.wape.value, 1)}
-          sub={`90% CI ${ciPct(a.wape.lo, a.wape.hi)}`}
+          sub={`90% range ${ciPct(a.wape.lo, a.wape.hi)}`}
         />
       </KpiStrip>
-      <Split
-        main={
-          <>
-            <Panel
-              eyebrow="Over-forecast by forecast level"
-              title="The windier the forecast, the further it overshoots"
-              foot={`Forecast minus delivered, for the run used at the gate, on the ${levelHours} hours with a correction (after the warm-up), so raw and corrected compare the same hours. Line: median; bar: 10th–90th percentile. Dashed: the highest delivered hour in the pilot, ${gw(a.ceiling_mw)}.`}
-            >
-              <LevelBias bins={a.by_level} ceilingMw={a.ceiling_mw} />
-            </Panel>
-            <Panel
-              eyebrow="Daily error"
-              title="Most days were over-forecast"
-              foot="Average delivered minus forecast per delivery day. Select a day to replay it."
-            >
-              <DayStrip
-                days={a.days.map((d) => ({ day: d.day, value: d.raw_bias }))}
-                mode="error"
-                selected={day}
-                pins={SHOWCASE.map((s) => s.day)}
-                onSelect={onDay}
-              />
-            </Panel>
-          </>
-        }
-        rail={
-          <>
-            <SignalCard title="The forecast over-states delivered wind">
-              <p>
-                Over by {gw(over)} on average
-                {meanForecast ? `, about ${pct(over / meanForecast)} of the forecast` : ''}, and over in{' '}
-                {pct(a.over_share)} of hours. {top?.raw_p50 != null && `Above ${gw(top.lo_mw, 0)} it overshoots by ${gw(-top.raw_p50)}. `}
-                Delivered wind never went above {gw(a.ceiling_mw)}.
-              </p>
-              <p className="muted">Likely cause: curtailment and/or a coverage difference between forecast and metered output.</p>
-            </SignalCard>
-            <WatchList
-              items={[
-                `A correction learned only from earlier days cuts typical miss by ${pct(cut)}: ${gw(c.raw_mae.value)} to ${gw(c.corrected_mae.value)} (90% CI of the gain ${gwRange(-c.gain.hi, -c.gain.lo)}).`,
-                `Shape right, level wrong: forecast and delivered move together (correlation ${a.corr.toFixed(2)}).`,
-                `Worst day ${dayShort(worst.day)}: typical miss ${gw(worst.raw_mae)}${worst.day === meta.excluded_day ? ', the NESO IT failure' : ''}.`,
-              ]}
-            />
-          </>
-        }
+      <div className="duo">
+        <Panel
+          title="Bias by forecast level: the windier the forecast, the further it overshoots"
+          hint={`Forecast minus actual for the run used at the gate, on the ${levelHours} hours with a correction, so published and corrected compare the same hours.`}
+          foot={`Curtailment (wind farms paid to turn down when the grid is constrained) is the likely cause: actual generation is metered after turn-down, the forecast may not be. Actual wind never went above ${gw(a.ceiling_mw)} in the pilot.`}
+        >
+          <LevelBias bins={a.by_level} ceilingMw={a.ceiling_mw} />
+        </Panel>
+        <Panel title="Daily error calendar" hint="Select a day to open it in Decision.">
+          <ErrorCalendar
+            days={a.days.map((d) => ({ day: d.day, value: overForecast(d.raw_bias) }))}
+            selected={day}
+            pins={SHOWCASE.map((s) => s.day)}
+            onSelect={onDay}
+          />
+        </Panel>
+      </div>
+      <Notes
+        title="What it means"
+        row
+        items={[
+          {
+            title: 'Level runs high',
+            text: `Forecast too high by ${gw(overForecast(a.bias.value))} on average${meanForecast ? `, about ${pct(-a.bias.value / meanForecast)} of the forecast` : ''}.${
+              top?.raw_p50 != null ? ` Above ${gw(top.lo_mw, 0)} it overshoots by ${gw(-top.raw_p50)}.` : ''
+            } Actual never went above ${gw(a.ceiling_mw)}.`,
+          },
+          {
+            title: 'Shape is right',
+            text: `Forecast and actual rise and fall together hour by hour, so a correction learned from earlier days cuts the error by ${pct(cut)} (${gwRange(-c.gain.hi, -c.gain.lo)}, 90% range).`,
+          },
+          {
+            title: `Worst day ${dayShort(worst.day)}`,
+            text: `Mean absolute error ${gw(worst.raw_mae)}${worst.day === meta.excluded_day ? ': the NESO IT failure, a data fault rather than weather' : ''}.`,
+          },
+        ]}
       />
       <p className="caption">
-        Approx. 90% ranges from resampling the month in 3-day blocks, n = {a.n_days} days (see Methodology). Corrected figures use the{' '}
-        {c.n_days} days with enough history to calibrate.
+        Approximate 90% ranges (see Methodology). Corrected figures use the {c.n_days} days after warm-up.
       </p>
     </>
   )
@@ -111,10 +107,8 @@ export function Accuracy({
   return (
     <Section
       id="accuracy"
-      letter="B"
-      eyebrow="Accuracy"
-      title="How good is the forecast?"
-      lede="Every January decision scored against what the wind delivered. The forecast's shape is good; its level runs high."
+      title="Forecast accuracy"
+      lede={`${meta.days.length} delivery days, ${dayShort(meta.days[0])} to ${dayShort(meta.days.at(-1))}, each scored against actual generation (outturn, Elexon FUELHH). The shape is right; the level runs high.`}
     >
       <Await query={accuracy} height={560}>
         {(a) => <Body a={a} meta={meta} day={day} onDay={onDay} />}

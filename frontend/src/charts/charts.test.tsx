@@ -2,7 +2,7 @@ import { act, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { components } from '../lib/api-types'
-import { DayStrip } from './DayStrip'
+import { ErrorCalendar } from './ErrorCalendar'
 import { LevelBias } from './LevelBias'
 import { LineBand, withCrossings } from './LineBand'
 import { Reliability } from './Reliability'
@@ -87,17 +87,21 @@ describe('charts', () => {
           { id: 'late', style: 'late', points: raw.map((p) => ({ ...p, y: (p.y ?? 0) - 900 })) },
           { id: 'raw', style: 'raw', points: raw },
           { id: 'corr', style: 'corrected', points: raw.map((p) => ({ ...p, y: (p.y ?? 0) * 0.85 })) },
+          { id: 'firm', style: 'firm', points: raw.map((p) => ({ ...p, y: (p.y ?? 0) * 0.7 })) },
           { id: 'actual', style: 'actual', points: actual },
         ]}
+        labels={{ firm: 'P90 wind (count on)' }}
+        shadeLabel="Actual below P90 wind"
         band={hours.map((t) => ({ t, lo: 9000, hi: 16000 }))}
         shade={hours.map((t, i) => ({ t, forecast: raw[i]?.y ?? null, actual: actual[i]?.y ?? null }))}
       />,
     )
     const svg = host.querySelector('svg[role="img"]')!
     expect(svg.getAttribute('aria-label')).toContain('Replay for 12 January.')
-    expect(plot().querySelectorAll('path.line')).toHaveLength(5)
+    expect(plot().querySelectorAll('path.line')).toHaveLength(6)
     expect(host.querySelector('.shade-short')?.getAttribute('d')).toBeTruthy()
-    expect(host.textContent).toContain('too late')
+    expect(plot().textContent).toContain('P90 wind (count on)') // direct label at the line's end
+    expect(host.querySelector('.chart-legend')?.textContent).toContain('Actual below P90 wind')
     expect(host.textContent).toContain('00:00') // London is on UTC in January
 
     key(svg, 'ArrowRight')
@@ -105,6 +109,7 @@ describe('charts', () => {
     expect(tip.textContent).toContain('00:00–01:00')
     expect(tip.textContent).toContain('15.0 GW')
     expect(tip.textContent).toContain('Likely range')
+    expect(tip.textContent).toContain('P90 wind (count on)')
     expect(host.querySelector('[aria-live]')?.textContent).toContain('00:00–01:00')
     key(svg, 'Escape')
     expect(host.querySelector('.chart-tip')).toBeNull()
@@ -120,21 +125,25 @@ describe('charts', () => {
     expect(pts[1]).toEqual({ t: H / 2, forecast: 10, actual: 10 })
   })
 
-  it('DayStrip is a radiogroup with arrow-key navigation and pins', () => {
+  it('ErrorCalendar is a radiogroup with day and week arrow-key navigation and pins', () => {
     const onSelect = vi.fn()
     const days = Array.from({ length: 31 }, (_, i) => ({
       day: `2026-01-${String(i + 1).padStart(2, '0')}`,
       value: i === 3 ? null : -1500 + 100 * i,
     }))
-    render(<DayStrip days={days} mode="error" selected="2026-01-12" pins={['2026-01-08', '2026-01-12', '2026-01-28']} onSelect={onSelect} />)
+    render(<ErrorCalendar days={days} selected="2026-01-12" pins={['2026-01-08', '2026-01-12', '2026-01-28']} onSelect={onSelect} />)
     const radios = host.querySelectorAll('[role="radio"]')
     expect(radios).toHaveLength(31)
     expect(host.querySelectorAll('.day-pin')).toHaveLength(3)
     const selected = host.querySelector('[aria-checked="true"]')!
     expect(selected.getAttribute('tabindex')).toBe('0')
-    expect(selected.getAttribute('aria-label')).toBe('Mon 12 Jan, over-forecast by 0.4 GW, showcase day')
+    expect(selected.getAttribute('aria-label')).toBe('Mon 12 Jan, forecast too low by 0.4 GW, notable day')
     key(selected, 'ArrowRight')
     expect(onSelect).toHaveBeenLastCalledWith('2026-01-13')
+    key(selected, 'ArrowDown')
+    expect(onSelect).toHaveBeenLastCalledWith('2026-01-19')
+    // 1 Jan 2026 is a Thursday: three blank cells lead the first week.
+    expect(host.querySelectorAll('.calendar > span')).toHaveLength(3)
     key(selected, 'Home')
     expect(onSelect).toHaveBeenLastCalledWith('2026-01-01')
   })
@@ -144,27 +153,29 @@ describe('charts', () => {
       Array.from({ length: 50 }, (_, i) => ({ target: 1 - (i + 1) / 100, achieved: Math.max(0, 1 - ((i + 1) / 100) * k) }))
     render(<Reliability hour={curve(1.1)} day={curve(2.4)} marker={0.9} />)
     const label = host.querySelector('svg[role="img"]')!.getAttribute('aria-label')
-    expect(label).toContain('At a 90% target, 89% of hours and 76% of whole days were covered.')
+    expect(label).toContain('At a 90% target, 89% of hours and 76% of whole days held.')
     expect(plot().querySelectorAll('circle.dot')).toHaveLength(2)
     expect(host.querySelector('.s-target')).not.toBeNull()
   })
 
-  it('LevelBias draws a raw and corrected range per bin and the ceiling', () => {
+  it('LevelBias draws a raw and corrected range per bin and shades levels actual never reached', () => {
     render(<LevelBias bins={bins} ceilingMw={17756} />)
     expect(plot().querySelectorAll('rect.bar-raw')).toHaveLength(bins.length)
     expect(plot().querySelectorAll('rect.bar-corrected')).toHaveLength(bins.length)
-    expect(host.textContent).toContain('Highest delivered 17.8 GW')
+    expect(host.textContent).toContain('Actual wind never reached')
+    expect(plot().querySelectorAll('rect.post-gate')).toHaveLength(1)
     for (const b of bins) expect(host.textContent).toContain(b.label)
   })
 
   it('WaitingCurve marks gates and the post-gate region', () => {
     render(<WaitingCurve slots={slots} gates={gates} gain={gain} />)
     expect(plot().querySelectorAll('circle.dot')).toHaveLength(slots.length)
-    expect(host.querySelectorAll('circle.ring')).toHaveLength(2)
+    expect(plot().querySelectorAll('circle.ring')).toHaveLength(2)
     expect(host.textContent).toContain('EPEX 09:20')
     expect(host.textContent).toContain('N2EX 09:50')
     expect(host.textContent).toContain('Not available day-ahead')
-    expect(host.textContent).toContain('−392 MW')
+    expect(host.textContent).toContain('error 392 MW smaller')
+    expect(host.textContent).toContain('Compared runs')
     expect(host.querySelectorAll('.faded').length).toBe(2)
   })
 })

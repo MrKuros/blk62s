@@ -134,16 +134,6 @@ export function riskFromCosts(short: number, surplus: number): number {
   return Math.min(R_MAX, Math.max(R_MIN, r))
 }
 
-/** GWh to secure beyond wind: the forecast you can't count on, summed over the day's hours. */
-export function planGWh(raw: readonly MaybeMW[], firm: readonly MaybeMW[]): number {
-  let mwh = 0
-  raw.forEach((v, i) => {
-    const f = firm[i]
-    if (v != null && f != null) mwh += v - f
-  })
-  return mwh / 1000
-}
-
 export const mean = (xs: readonly MaybeMW[]): number | null => {
   let s = 0
   let n = 0

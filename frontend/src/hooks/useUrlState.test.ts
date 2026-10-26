@@ -20,15 +20,16 @@ describe('parseState / serializeState', () => {
   it('gives defaults for an empty or garbage query', () => {
     expect(parseState('')).toEqual(DEFAULTS)
     expect(
-      parseState('?day=2026-13-45&auction=x&t=25:00&margin=15&risk=often&r=99&calib=nov&ex28=yes&reveal=true'),
+      parseState('?tab=charts&day=2026-13-45&auction=x&t=25:00&margin=15&risk=often&r=99&calib=nov&ex28=yes&reveal=true'),
     ).toEqual(DEFAULTS)
   })
 
   it('reads every field', () => {
     const s = parseState(
-      '?day=2026-01-28&auction=custom&t=08:45&margin=60&risk=custom&r=7&calib=dec&ex28=1&reveal=1&drawer=1',
+      '?tab=firm&day=2026-01-28&auction=custom&t=08:45&margin=60&risk=custom&r=7&calib=dec&ex28=1&reveal=1&drawer=1',
     )
     expect(s).toEqual<UrlState>({
+      tab: 'firm',
       day: '2026-01-28',
       auction: 'custom',
       t: '08:45',
@@ -58,7 +59,7 @@ describe('parseState / serializeState', () => {
   it('round-trips and keeps the URL short', () => {
     expect(serializeState(DEFAULTS)).toBe('')
     expect(serializeState({ ...DEFAULTS, t: '07:00', r: 3 })).toBe('') // inactive custom values stay out
-    const s: UrlState = { ...DEFAULTS, day: '2026-01-08', auction: 'custom', t: '07:00', margin: 10, ex28: true }
+    const s: UrlState = { ...DEFAULTS, tab: 'timing', day: '2026-01-08', auction: 'custom', t: '07:00', margin: 10, ex28: true }
     expect(parseState(serializeState(s))).toEqual(s)
   })
 })
@@ -86,6 +87,16 @@ describe('updateUrlState', () => {
     expect(window.location.search).toBe('?auction=n2ex')
     push.mockRestore()
     replace.mockRestore()
+  })
+
+  it('pushes a history entry for a new tab and opens a day on Decision in one step', () => {
+    const push = vi.spyOn(window.history, 'pushState')
+    updateUrlState({ tab: 'accuracy' })
+    expect(window.location.search).toBe('?tab=accuracy')
+    updateUrlState({ tab: 'decision', day: '2026-01-28' })
+    expect(window.location.search).toBe('?day=2026-01-28')
+    expect(push).toHaveBeenCalledTimes(2)
+    push.mockRestore()
   })
 })
 

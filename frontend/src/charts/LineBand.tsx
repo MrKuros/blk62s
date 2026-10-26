@@ -2,7 +2,7 @@ import { area, line } from 'd3-shape'
 import { gw, gwRange } from '../lib/format'
 import { ChartFrame, clock, hourTicks, Key, TipRow } from './ChartFrame'
 
-export type SeriesStyle = 'raw' | 'corrected' | 'faint' | 'late' | 'actual'
+export type SeriesStyle = 'raw' | 'corrected' | 'firm' | 'faint' | 'late' | 'actual'
 export interface Point {
   t: number // epoch ms, start of the delivery hour
   y: number | null // MW
@@ -28,17 +28,23 @@ interface Props {
   band?: BandPoint[]
   shade?: ShadePoint[]
   yMax?: number
+  height?: number
   ariaLabel: string
+  /** Legend and readout names that depend on context, e.g. "P90 wind (count on)" or "Latest forecast run". */
+  labels?: Partial<Record<SeriesStyle, string>>
+  bandLabel?: string
+  shadeLabel?: string
 }
 
-const DRAW_ORDER: SeriesStyle[] = ['faint', 'late', 'raw', 'corrected', 'actual']
-const TIP_ORDER: SeriesStyle[] = ['actual', 'corrected', 'raw']
+const DRAW_ORDER: SeriesStyle[] = ['faint', 'late', 'raw', 'corrected', 'firm', 'actual']
+const TIP_ORDER: SeriesStyle[] = ['actual', 'corrected', 'raw', 'firm']
 const LABEL: Record<SeriesStyle, string> = {
-  raw: 'Forecast',
-  corrected: 'Corrected',
-  faint: 'Earlier runs',
+  raw: 'Forecast run used',
+  corrected: 'Corrected forecast',
+  firm: 'P90 wind',
+  faint: 'Other runs before the gate',
   late: 'Too late for the gate',
-  actual: 'Delivered',
+  actual: 'Actual (outturn)',
 }
 const HOUR = 3_600_000
 
@@ -64,7 +70,8 @@ const withGaps = (pts: BandPoint[]) =>
     return prev && b.t - prev.t > HOUR ? [{ t: b.t, lo: NaN, hi: NaN }, b] : [b]
   })
 
-export function LineBand({ series, band, shade, yMax, ariaLabel }: Props) {
+export function LineBand({ series, band, shade, yMax, height, ariaLabel, labels, bandLabel = 'Likely range', shadeLabel }: Props) {
+  const name = (s: SeriesStyle) => labels?.[s] ?? LABEL[s]
   const ts = [...series.flatMap((s) => s.points.map((p) => p.t)), ...(band ?? []).map((b) => b.t)]
   const ys = [...series.flatMap((s) => s.points.map((p) => p.y ?? 0)), ...(band ?? []).map((b) => b.hi)]
   const t0 = ts.length ? Math.min(...ts) : 0
@@ -79,7 +86,7 @@ export function LineBand({ series, band, shade, yMax, ariaLabel }: Props) {
   const lookup = readable.map((s) => ({ style: s.style, at: new Map(s.points.map((p) => [p.t, p.y])) }))
   const bandAt = new Map((band ?? []).map((b) => [b.t, b]))
   const present = new Set(series.map((s) => s.style))
-  const lastLate = series.filter((s) => s.style === 'late').at(-1)
+  const firmLine = series.find((s) => s.style === 'firm')
   const shadePts = shade && withCrossings(shade)
 
   const tooltip = (i: number) => {
@@ -92,9 +99,9 @@ export function LineBand({ series, band, shade, yMax, ariaLabel }: Props) {
         </div>
         {TIP_ORDER.map((style) => {
           const s = lookup.find((l) => l.style === style)
-          return s && s.at.has(t) && <TipRow key={style} className={`s-${style}`} label={LABEL[style]} value={gw(s.at.get(t))} />
+          return s && s.at.has(t) && <TipRow key={style} className={`s-${style}`} label={name(style)} value={gw(s.at.get(t))} />
         })}
-        {b && <TipRow className="band-stroke" label="Likely range" value={gwRange(b.lo, b.hi)} />}
+        {b && <TipRow className="band-stroke" label={bandLabel} value={gwRange(b.lo, b.hi)} />}
       </>
     )
   }
@@ -102,11 +109,10 @@ export function LineBand({ series, band, shade, yMax, ariaLabel }: Props) {
   const legend = (
     <>
       {DRAW_ORDER.filter((s) => present.has(s)).map((s) => (
-        <Key key={s} mark="line" className={`s-${s}`} label={LABEL[s]} />
+        <Key key={s} mark="line" className={`s-${s}`} label={name(s)} />
       ))}
-      {band && <Key mark="area" className="band" label="Likely range" />}
-      {shade && <Key mark="area" className="shade-short" label="Delivered below forecast" />}
-      {shade && <Key mark="area" className="shade-surplus" label="Delivered above forecast" />}
+      {band && <Key mark="area" className="band" label={bandLabel} />}
+      {shade && <Key mark="area" className="shade-short" label={shadeLabel ?? 'Shortfall'} />}
     </>
   )
 
@@ -117,28 +123,29 @@ export function LineBand({ series, band, shade, yMax, ariaLabel }: Props) {
       yDomain={[0, top]}
       xTicks={hourTicks}
       yLabel="GW"
+      height={height}
       snap={snap}
       tooltip={tooltip}
       legend={legend}
     >
-      {({ x, y }) => {
+      {({ x, y, width }) => {
         const path = line<Point>()
           .defined((p) => p.y != null)
           .x((p) => x(p.t))
           .y((p) => y(p.y ?? 0))
-        // Clamping the outcome to the forecast on one side gives one area per colour; crossing points keep it exact.
-        const between = (edge: (a: number, f: number) => number) =>
-          area<ShadePoint>()
-            .defined(both)
-            .x((d) => x(d.t))
-            .y0((d) => y(d.forecast ?? 0))
-            .y1((d) => y(edge(d.actual ?? 0, d.forecast ?? 0)))
-        const end = lastLate?.points.filter((p) => p.y != null).at(-1)
+        // Shortfall only: actual clamped to at most the level, so the area exists only where actual fell below it;
+        // crossing points keep the edges exact.
+        const shortfall = area<ShadePoint>()
+          .defined(both)
+          .x((d) => x(d.t))
+          .y0((d) => y(d.forecast ?? 0))
+          .y1((d) => y(Math.min(d.actual ?? 0, d.forecast ?? 0)))
+        const end = firmLine?.points.filter((p) => p.y != null).at(-1)
         return (
           <>
             {band && (
               <path
-                className="band"
+                className={shadePts ? 'band band-muted' : 'band'}
                 d={
                   area<BandPoint>()
                     .defined((b) => !Number.isNaN(b.lo))
@@ -150,20 +157,25 @@ export function LineBand({ series, band, shade, yMax, ariaLabel }: Props) {
             )}
             {shadePts && (
               <g className="reveal">
-                <path className="shade-short" d={between(Math.min)(shadePts) ?? ''} />
-                <path className="shade-surplus" d={between(Math.max)(shadePts) ?? ''} />
+                <path className="shade-short" d={shortfall(shadePts) ?? ''} />
               </g>
             )}
             {DRAW_ORDER.flatMap((style) =>
               series
                 .filter((s) => s.style === style)
                 .map((s) => (
-                  <path key={s.id} className={`line s-${style}${style === 'actual' ? ' reveal' : ''}`} d={path(s.points) ?? ''} />
+                  <path
+                    key={s.id}
+                    className={`line s-${style}${style === 'actual' ? ' reveal-draw' : ''}`}
+                    pathLength={style === 'actual' ? 1 : undefined}
+                    d={path(s.points) ?? ''}
+                  />
                 )),
             )}
-            {end && (
-              <text className="direct-label" x={x(end.t)} y={y(end.y ?? 0) - 6} textAnchor="end">
-                too late
+            {/* On phones the legend names it; a label there would sit on the lines. */}
+            {end && width >= 420 && (
+              <text className="direct-label direct-firm" x={x(end.t)} y={y(end.y ?? 0) + 16} textAnchor="end">
+                {name('firm')}
               </text>
             )}
           </>

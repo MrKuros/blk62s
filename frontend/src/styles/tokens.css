@@ -1,21 +1,35 @@
 :root {
-  --brand: #148937;
-  --ink: #2b2a2a;
-  --subtext: #5a5856;
-  --bg: #fcfcfc;
+  /* Paper, ink and rules */
+  --bg: #f6f7f5;
   --surface: #fff;
-  --panel: #fbfbf9;
-  --border: rgb(43 42 42 / 0.1);
-  --axis: #7a776e;
-  --grid: #e8e7e3;
-  --axis-line: #d8d6cf;
-  --forecast: #3b82f6;
-  --band: rgb(20 137 55 / 0.12);
-  --short: rgb(220 38 38 / 0.15);
-  --surplus: rgb(59 130 246 / 0.12);
+  --panel: #f9faf8;
+  --ink: #16201a;
+  --subtext: #5b635e;
+  --border: #dfe3e0;
+  --grid: #eceeec;
+  --axis: #5b635e;
+  --axis-line: #c9cfcb;
 
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  /* Data */
+  --brand: #148937;
+  --brand-ink: #0f6e2c;
+  --forecast: #2f6fde;
+  --run-used: #1d4fae; /* the forecast run used: a heavier blue, never green */
+  --amber: #c2410c;
+  --band: rgb(20 137 55 / 0.13);
+  --short: rgb(194 65 12 / 0.16);
+  --surplus: rgb(47 111 222 / 0.13);
+
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* Type scale 12 / 14 / 16 / 20 / 28 / 44 */
+  --t-xs: 12px;
+  --t-sm: 14px;
+  --t-md: 16px;
+  --t-lg: 20px;
+  --t-xl: 28px;
+  --t-hero: 44px;
 
   /* 8 px grid */
   --space-1: 8px;
@@ -24,11 +38,11 @@
   --space-4: 32px;
   --space-6: 48px;
   --space-8: 64px;
-  --radius: 8px;
+  --radius: 6px;
 
   color-scheme: light;
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: var(--t-sm);
   line-height: 1.5;
   color: var(--ink);
   background: var(--bg);
@@ -85,14 +99,21 @@ svg {
 }
 
 .eyebrow {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: var(--t-xs);
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.08em;
   color: var(--subtext);
 }
 
+/* Figures: Plex Sans with tabular, lining digits, so columns align without mono's full-width decimal point.
+ * Mono is kept for axis ticks and data tables (.mono). */
 .num {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.mono {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }

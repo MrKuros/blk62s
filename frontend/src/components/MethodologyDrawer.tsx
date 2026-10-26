@@ -1,8 +1,8 @@
-import { type ReactNode, useEffect, useRef } from 'react'
+import { Fragment, type ReactNode, useEffect, useRef } from 'react'
 import { type AnalysisParams, useAccuracy, useFirm, useReplay } from '../hooks/queries'
 import { type Accuracy, type ExportView, exportUrl, type Firm, type Meta } from '../lib/api'
 import { coverage } from '../lib/firm'
-import { dayShort, gateLabel, gw, pct, riskLabel, ukDateTime } from '../lib/format'
+import { biasGw, dayShort, gateLabel, gw, pct, riskLabel, ukDateTime } from '../lib/format'
 
 interface Props {
   open: boolean
@@ -24,6 +24,26 @@ const METHOD: Record<Firm['methods'][number]['method'], string> = {
   per_level: 'Additive per forecast level',
 }
 
+const GLOSSARY: [string, string][] = [
+  ['Delivery day (D)', 'The day the power is delivered. D-1 is the day before, when the day-ahead auctions run.'],
+  ['Gate closure', 'Last moment to submit day-ahead bids: EPEX 09:20 and N2EX 09:50, D-1 UK time.'],
+  ['Forecast run', 'One publication of the NESO national wind forecast (Elexon WINDFOR), about 8 times a day.'],
+  ['Hours ahead', 'Time from a run’s publish time to the delivery hour it forecasts.'],
+  ['Actual generation (outturn)', 'Metered wind output, Elexon FUELHH, after any balancing turn-down.'],
+  ['Settlement period', 'The 30-minute trading unit; two make each delivery hour here.'],
+  ['Mean absolute error (MAE)', 'Average size of the miss, either direction.'],
+  ['Forecast bias', 'Average of forecast minus actual, with its sign; positive means the forecast was too high. Used the same way on every screen.'],
+  ['Error as a share of generation (WAPE)', 'Total absolute miss divided by total actual energy.'],
+  ['Corrected forecast', 'The forecast adjusted by what past days showed (the OLS correction above). Forecast and actual correlate at r = 0.93 hour by hour, which is why a linear correction works.'],
+  ['P90 wind / firm wind', 'The level actual wind beat in 9 of 10 hours on past days: the r = 10 quantile rule. P95 is r = 5, P50 (balanced) r = 50. The Decision headline "Count on X GW" is this level.'],
+  ['Warm-up', 'The first delivery days, with fewer than 5 past days known at the gate: no correction or likely range yet.'],
+  ['Download delay', 'Optional margin: runs published less than this many minutes before gate closure are ignored.'],
+  ['Curtailment', 'Wind farms paid to turn down when the grid is constrained; the likely cause of the forecast running high.'],
+  ['Walk-forward', 'Each day is predicted using only earlier days, then scored; nothing is fitted on the day it is tested on.'],
+  ['Block bootstrap', 'Resampling 3-day blocks of days to see how much a figure could move; blocks keep each storm’s run of bad days together.'],
+  ['Quantile (q, r)', 'q is the grid of 99 past actual/corrected ratio percentiles; r picks one, as the accepted shortfall in % of hours.'],
+]
+
 const toMinutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5))
 
 /** D-2 → D on one axis: what is known when, and which run the gate rule picks. */
@@ -38,9 +58,10 @@ function Timeline({ meta, cutoffLocal, margin }: { meta: Meta; cutoffLocal: stri
   const before = runs.filter((s) => s.day_offset === -2 || toMinutes(s.local_time) < gate)
   const decision = before.at(-1)
   return (
+    <div className="timeline-scroll">
     <svg className="timeline" viewBox={`0 0 ${W} 170`} role="img" aria-labelledby="timeline-title">
       <title id="timeline-title">
-        Timeline: training uses delivery days up to D-2; the decision run is the last run published before the gate on
+        Timeline: training uses delivery days up to D-2; the run used is the last run published before the gate on
         D-1; delivery day D is scored afterwards.
       </title>
       <rect className="tl-train" x={0} y={28} width={x(-2, 1440) - 0} height={14} />
@@ -80,13 +101,14 @@ function Timeline({ meta, cutoffLocal, margin }: { meta: Meta; cutoffLocal: stri
       </text>
       {decision && (
         <text className="tl-label" x={decision.at - 6} y={72} textAnchor="end">
-          Decision run
+          Run used
         </text>
       )}
       <text className="tl-tick" x={gx + 6} y={128}>
         later runs: too late
       </text>
     </svg>
+    </div>
   )
 }
 
@@ -131,9 +153,9 @@ function JanVsDec({ params, r, meta }: { params: AnalysisParams; r: number; meta
   const dec = col(firmDec)
   const rows: [string, keyof typeof jan][] = [
     ['Days scored (after the January warm-up)', 'days'],
-    ['Corrected typical miss', 'mae'],
-    [`Hours covered, short in ${riskLabel(r)}`, 'hours'],
-    ['Whole days covered', 'whole'],
+    ['Corrected mean absolute error', 'mae'],
+    [`Hours held, accepting a shortfall in ${riskLabel(r)}`, 'hours'],
+    ['Whole days held', 'whole'],
   ]
   return (
     <table>
@@ -190,7 +212,7 @@ function Content({ meta, day, params, r }: Omit<Props, 'open' | 'onClose'> & { m
             clock changes are handled. EPEX is the default because it is the earlier, more conservative one.
           </li>
           <li>
-            <strong>Run used:</strong> publish time strictly before the gate, minus the optional latency margin. The N2EX 09:30
+            <strong>Run used:</strong> publish time strictly before the gate, minus the optional download delay. The N2EX 09:30
             run lands 20 minutes before its gate; whether it can always be downloaded in time is not verified. The 60-min
             margin replays January as if each run only became usable an hour after its publish time, as Elexon's page
             implies; N2EX then uses the 07:30 run, and EPEX keeps it.
@@ -200,19 +222,22 @@ function Content({ meta, day, params, r }: Omit<Props, 'open' | 'onClose'> & { m
             the energy of the hourly product. Chosen before looking at results; alternatives are below.
           </li>
           <li>
-            <strong>Correction:</strong> delivered ≈ a + b × forecast, refitted for each day on earlier days only.
+            <strong>Correction:</strong> actual ≈ a + b × forecast (OLS), refitted for each day on earlier days only
+            (walk-forward).
           </li>
           <li>
-            <strong>Count-on rule:</strong> corrected forecast × the r-th percentile of past delivered/corrected ratios. One
-            scale-free parameter, chosen before looking at January.
+            <strong>Firm wind rule:</strong> corrected forecast × the r-th quantile of past actual/corrected ratios, where r is
+            the accepted shortfall in % of hours (P90 is r = 10). One scale-free parameter, chosen before looking at January.
+            The likely range on the replay chart runs from the r-th to the (100 − r)-th quantile; its lower edge is P90 wind
+            (generally, P(100 − r) wind).
           </li>
           <li>
-            <strong>Warm-up:</strong> with fewer than 5 past days a day shows the raw forecast, flagged as calibrating, and is
+            <strong>Warm-up:</strong> with fewer than 5 past days a day shows the published forecast, flagged as warm-up, and is
             left out of coverage figures.
           </li>
           <li>
-            <strong>Uncertainty:</strong> 2,000 resamples of 3-day blocks, fixed seed; comparisons are paired on the same
-            resamples. Intervals are approximately 90%.
+            <strong>Uncertainty:</strong> block bootstrap, 2,000 resamples of 3-day blocks, fixed seed; comparisons are paired
+            on the same resamples. The "90% range" on every screen is this approximate 90% confidence interval.
           </li>
         </ul>
       </Block>
@@ -223,8 +248,8 @@ function Content({ meta, day, params, r }: Omit<Props, 'open' | 'onClose'> & { m
             <thead>
               <tr>
                 <th scope="col">Hour alignment</th>
-                <th scope="col">Typical miss</th>
-                <th scope="col">Usually over by</th>
+                <th scope="col">Mean absolute error</th>
+                <th scope="col">Forecast bias (+ = too high)</th>
               </tr>
             </thead>
             <tbody>
@@ -232,7 +257,7 @@ function Content({ meta, day, params, r }: Omit<Props, 'open' | 'onClose'> & { m
                 <tr key={s.alignment}>
                   <th scope="row">{ALIGNMENT[s.alignment]}</th>
                   <td className="num">{gw(s.mae, 2)}</td>
-                  <td className="num">{gw(-s.bias, 2)}</td>
+                  <td className="num">{biasGw(s.bias, 2)}</td>
                 </tr>
               ))}
             </tbody>
@@ -242,17 +267,17 @@ function Content({ meta, day, params, r }: Omit<Props, 'open' | 'onClose'> & { m
         )}
       </Block>
 
-      <Block id="m-methods" title="Count-on methods compared">
+      <Block id="m-methods" title="Firm wind methods compared">
         {firm.data ? (
           <table>
             <thead>
               <tr>
                 <th scope="col">Method</th>
-                <th scope="col">Short in</th>
+                <th scope="col">Accepted shortfall</th>
                 <th scope="col">{dayShort(meta.excluded_day)}</th>
-                <th scope="col">Hours covered</th>
+                <th scope="col">Hours held</th>
                 <th scope="col">Whole days</th>
-                <th scope="col">Count on</th>
+                <th scope="col">Firm, % of forecast</th>
                 <th scope="col">n days</th>
               </tr>
             </thead>
@@ -304,7 +329,7 @@ function Content({ meta, day, params, r }: Omit<Props, 'open' | 'onClose'> & { m
                 <td className="num">{gw(a.baselines.persistence_mae, 2)}</td>
               </tr>
             </tbody>
-            <caption>Typical miss of each.</caption>
+            <caption>Mean absolute error of each.</caption>
           </table>
         ) : (
           <p className="muted">Loading…</p>
@@ -324,7 +349,7 @@ function Content({ meta, day, params, r }: Omit<Props, 'open' | 'onClose'> & { m
           </li>
           <li>
             <strong>Publish times.</strong> Elexon's page lists updates at 03:30, 05:30, 08:30…; observed publish times are an
-            hour earlier (02:30, 04:30, 07:30…). The app trusts the API's publish time; the 60-min latency margin shows the
+            hour earlier (02:30, 04:30, 07:30…). The app trusts the API's publish time; the 60-min download delay shows the
             figures if it should not. One run on 15 Jan arrived at 12:25 and
             is treated as the 11:30 run.
           </li>
@@ -335,22 +360,16 @@ function Content({ meta, day, params, r }: Omit<Props, 'open' | 'onClose'> & { m
         </ul>
       </Block>
 
-      <Block id="m-glossary" title="Glossary">
+      <Block id="m-glossary" title="Glossary: official terms, and the statistics behind them">
         <dl className="glossary">
-          <dt>Typical miss</dt>
-          <dd>Mean absolute error (MAE): the average size of the miss, ignoring direction.</dd>
-          <dt>Usually over by</dt>
-          <dd>Bias: the average of forecast minus delivered. Positive means the forecast was too high.</dd>
-          <dt>Miss as % of delivered</dt>
-          <dd>WAPE: total absolute miss divided by total delivered energy.</dd>
+          {GLOSSARY.map(([term, text]) => (
+            <Fragment key={term}>
+              <dt>{term}</dt>
+              <dd>{text}</dd>
+            </Fragment>
+          ))}
           <dt>RMSE</dt>
           <dd>Root mean squared error; weights large misses more. {a && `January: ${gw(a.rmse)}.`}</dd>
-          <dt>Walk-forward</dt>
-          <dd>Each day is predicted using only earlier days, then scored; nothing is fitted on the day it is tested on.</dd>
-          <dt>Bootstrap CI</dt>
-          <dd>Resampling 3-day blocks of days to see how much a figure could move; blocks keep each storm's run of bad days together.</dd>
-          <dt>Count on (firm wind)</dt>
-          <dd>The level the delivered wind should stay above in all but your accepted share of hours.</dd>
         </dl>
       </Block>
 

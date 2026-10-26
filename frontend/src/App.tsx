@@ -1,14 +1,15 @@
-import { AnswerCard } from './components/AnswerCard'
 import { MethodologyDrawer } from './components/MethodologyDrawer'
 import { DegradedBanner, ErrorState, Skeleton } from './components/States'
-import { TopBar } from './components/TopBar'
-import { type AnalysisParams, useMeta, useReplay } from './hooks/queries'
-import { cutoffParam, DEFAULTS, riskR, useUrlState } from './hooks/useUrlState'
+import { panelId, tabId, Tabs } from './components/Tabs'
+import { ControlBar, Masthead } from './components/TopBar'
+import { type AnalysisParams, useMeta } from './hooks/queries'
+import { cutoffParam, DEFAULTS, riskR, type Tab, useUrlState } from './hooks/useUrlState'
+import { pLabel } from './lib/format'
 import { Accuracy } from './sections/Accuracy'
+import { Decision } from './sections/Decision'
 import { Firm } from './sections/Firm'
 import { Live } from './sections/Live'
-import { Replay } from './sections/Replay'
-import { Waiting } from './sections/Waiting'
+import { Timing } from './sections/Timing'
 import './styles/app.css'
 
 export default function App() {
@@ -19,54 +20,66 @@ export default function App() {
   const r = riskR(state)
   // A shared link may name a day outside the pilot; fall back rather than request a 422.
   const day = !m || m.days.includes(state.day) ? state.day : m.days.includes(DEFAULTS.day) ? DEFAULTS.day : m.days[0]!
-  const replay = useReplay(m ? day : undefined, params)
-  const onDay = (d: string) => set({ day: d })
+  const tabs: { id: Tab; label: string; short: string }[] = [
+    { id: 'decision', label: 'Decision', short: 'Decision' },
+    { id: 'accuracy', label: 'Forecast accuracy', short: 'Accuracy' },
+    { id: 'firm', label: `Firm wind (${pLabel(r)})`, short: pLabel(r) },
+    { id: 'timing', label: 'Timing', short: 'Timing' },
+    { id: 'live', label: 'Tomorrow (live)', short: 'Live' },
+  ]
+
+  const view = (tab: Tab, meta: NonNullable<typeof m>) => {
+    switch (tab) {
+      case 'decision':
+        return (
+          <Decision meta={meta} day={day} params={params} r={r} reveal={state.reveal} onReveal={(reveal) => set({ reveal })} />
+        )
+      case 'accuracy':
+        return <Accuracy meta={meta} day={day} params={params} onDay={(d) => set({ day: d, tab: 'decision' })} />
+      case 'firm':
+        return (
+          <Firm
+            meta={meta}
+            params={params}
+            r={r}
+            ex28={state.ex28}
+            onEx28={(ex28) => set({ ex28 })}
+            onCalib={(calib) => set({ calib })}
+          />
+        )
+      case 'timing':
+        return <Timing auction={state.auction === 'n2ex' ? 'n2ex' : 'epex'} />
+      case 'live':
+        return <Live cutoff={params.cutoff} margin={params.margin} r={r} />
+    }
+  }
 
   return (
     <>
       <a className="skip" href="#main">
         Skip to content
       </a>
-      <TopBar state={state} r={r} meta={m} apiDown={meta.isError} set={set} />
-      <main id="main" className="page">
-        <DegradedBanner meta={meta} />
+      <Masthead meta={m} apiDown={meta.isError && !m} live={state.tab === 'live'} set={set} />
+      {/* Tabs never wait for the API, and the control bar keeps its height, so nothing jumps when data lands. */}
+      <div className="sticky">
         {m ? (
-          <>
-            {replay.data ? (
-              <div className={replay.isPlaceholderData ? 'is-stale' : undefined}>
-                <AnswerCard replay={replay.data} r={r} />
-              </div>
-            ) : replay.isError ? (
-              <ErrorState error={replay.error} onRetry={() => void replay.refetch()} />
-            ) : (
-              <Skeleton height={132} label="Loading the answer" />
-            )}
-            <Replay
-              meta={m}
-              day={day}
-              params={params}
-              r={r}
-              reveal={state.reveal}
-              onDay={onDay}
-              onReveal={(reveal) => set({ reveal })}
-            />
-            <Accuracy meta={m} day={day} params={params} onDay={onDay} />
-            <Firm
-              meta={m}
-              params={params}
-              r={r}
-              ex28={state.ex28}
-              onEx28={(ex28) => set({ ex28 })}
-              onCalib={(calib) => set({ calib })}
-            />
-            <Waiting auction={state.auction === 'n2ex' ? 'n2ex' : 'epex'} />
-            <Live cutoff={params.cutoff} margin={params.margin} r={r} />
-          </>
+          <ControlBar state={state} r={r} meta={m} day={day} set={set} />
+        ) : (
+          <div className="controlbar controlbar-pending" aria-hidden="true" />
+        )}
+        <Tabs tabs={tabs} value={state.tab} onChange={(tab) => set({ tab })} />
+      </div>
+      <main id="main" className="page">
+        {m && <DegradedBanner meta={meta} />}
+        {m ? (
+          <div key={state.tab} className="tabpanel" role="tabpanel" id={panelId(state.tab)} aria-labelledby={tabId(state.tab)}>
+            {view(state.tab, m)}
+          </div>
         ) : meta.isError ? (
           <ErrorState error={meta.error} onRetry={() => void meta.refetch()} />
         ) : (
           <>
-            <Skeleton height={132} label="Loading" />
+            <Skeleton height={180} label="Loading" />
             <Skeleton height={560} label="Loading" />
           </>
         )}

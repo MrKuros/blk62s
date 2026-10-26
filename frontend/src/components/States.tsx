@@ -37,7 +37,7 @@ export function Await<T>({
 }) {
   if (query.data !== undefined)
     return (
-      <div className={query.isPlaceholderData ? 'is-stale' : undefined} aria-busy={query.isFetching}>
+      <div className={query.isPlaceholderData ? 'stack is-stale' : 'stack'} aria-busy={query.isFetching}>
         {children(query.data)}
       </div>
     )
@@ -49,7 +49,7 @@ export function DegradedBanner({ meta }: { meta: UseQueryResult<Meta> }) {
   if (meta.isError)
     return (
       <div className="banner banner-error" role="alert">
-        <strong>The API isn't responding.</strong> The replay needs it to load.{' '}
+        <strong>The API isn't responding.</strong> The pilot needs it to refresh.{' '}
         <button type="button" className="link" onClick={() => void meta.refetch()}>
           Retry
         </button>
@@ -69,7 +69,7 @@ export function DegradedBanner({ meta }: { meta: UseQueryResult<Meta> }) {
         </>
       ) : (
         <>
-          <strong>Elexon is unreachable right now.</strong> The January replay runs on the bundled snapshot taken{' '}
+          <strong>Elexon is unreachable right now.</strong> The January pilot runs on the saved Elexon snapshot taken{' '}
           {dayLabel(m.snapshot_fetched_at.slice(0, 10))}; only the live preview needs Elexon.
         </>
       )}

@@ -2,21 +2,21 @@
 
 [![CI](https://github.com/MrKuros/blk62s/actions/workflows/ci.yml/badge.svg)](https://github.com/MrKuros/blk62s/actions/workflows/ci.yml)
 
-Firm Wind is a decision desk for a UK day-ahead power buyer. When an auction closes, the buyer needs to know how much national wind they can count on and how sure they can be. The app replays every January 2026 purchase decision using only the forecasts published before gate closure. It then measures how wrong the public NESO wind forecast (Elexon WINDFOR) was against metered output (Elexon FUELHH). Finally it turns that error into a single **firm-wind** number at a reliability the buyer chooses, and tests that number on days the model had not yet seen. The main finding is that WINDFOR consistently over-states the wind that is actually delivered, and the gap widens as wind rises. A correction learned only from earlier days removes much of that gap.
+Firm Wind is a decision desk for a UK day-ahead power buyer. When an auction closes, the buyer needs to know how much national wind they can count on and how sure they can be. The app replays every January 2026 purchase decision using only the forecasts published before gate closure. It then measures how wrong the public NESO wind forecast (Elexon WINDFOR) was against metered output (Elexon FUELHH). Finally it turns that error into a single **P90 wind** number (the level actual generation beat in 9 of 10 hours, at a reliability the buyer can change), and tests that number on days the model had not yet seen. The main finding is that WINDFOR consistently over-states actual generation, and the gap widens as wind rises. A correction learned only from earlier days removes much of that gap.
 
 **Live app:** https://blk62s.vercel.app · **API docs:** https://blk62s.vercel.app/api/docs
 
-<!-- SCREENSHOT: docs/screenshot.png (answer card + replay for 12 Jan 2026) -->
+<!-- SCREENSHOT: docs/screenshot.png (answer hero + Decision tab for 12 Jan 2026) -->
 
 ## What it answers
 
-| Question | Section | What you see |
+| Question | Tab | What you see |
 |---|---|---|
-| What did we know at the gate? | A · Replay | Pick any delivery day (2 Jan to 1 Feb). The chart shows the run that was available before the auction closed, as raw and corrected lines with an uncertainty band, alongside earlier runs and runs that arrived too late. "Reveal what happened" then draws the delivered wind. Signals and a watch list are generated from the numbers by deterministic templates. |
-| How good is the forecast? | B · Accuracy | Typical miss, average over-forecast and miss as a share of delivered wind, each with a bootstrap confidence interval, and the corrected miss next to the raw one. A chart shows how the error grows with forecast level. |
-| How much can I count on? | C · Firm wind | Wind you can count on at a chosen shortfall frequency (1 in 10 by default). A reliability chart compares target with achieved coverage per hour and per whole day. Every number is tested walk-forward. |
-| When should we decide? | D · Value of waiting | Typical miss for every publish slot from D-2 02:30 to D-1 22:30, on like-for-like hours, with the EPEX and N2EX gates marked. Also shows the difference between the two auctions. |
-| What about tomorrow? | E · Tomorrow, live | The same pipeline on live Elexon data: the latest run for tomorrow, corrected and banded, with calibration from the trailing 30 days. This is a preview beyond the January pilot. |
+| What did we know at the gate? | Decision | Pick any delivery day (2 Jan to 1 Feb). The answer hero at the top gives the P90 wind and hold back (forecast minus P90). The chart shows the forecast run available before gate closure, as raw and corrected forecast lines with an uncertainty band; "Show what happened" then draws actual generation (outturn). A Why panel lists signals generated from the numbers by deterministic templates, and a gate timeline shows every forecast run from D-2 to delivery. |
+| How good is the forecast? | Forecast accuracy | Mean absolute error, forecast bias (forecast minus actual, positive = too high) and error as a share of actual generation, each with a bootstrap confidence interval, and the corrected forecast's error next to the raw one. A chart shows how the error grows with forecast level, and a daily error calendar opens any day in Decision. |
+| How much can I count on? | Firm wind (P90) | P90 wind at a chosen shortfall frequency (1 in 10 by default), and shortfall energy vs P90 plan (national GWh). A reliability chart compares target with achieved coverage per hour and per whole day. Every number is tested walk-forward. |
+| When should we decide? | Timing | Mean absolute error for every forecast run slot from D-2 02:30 to D-1 22:30, on like-for-like hours, with the EPEX and N2EX gate closures marked. Also shows the difference between the two auctions. |
+| What about tomorrow? | Tomorrow (live) | The same pipeline on live Elexon data: the latest forecast run for tomorrow, corrected and banded, with calibration from the trailing 30 days. This is a preview beyond the January pilot. |
 
 A receipt panel in the methodology drawer (cutoff, run used, source, data hash, version) also heads every CSV export; the footer carries the data hash and version.
 
@@ -26,18 +26,18 @@ A receipt panel in the methodology drawer (cutoff, run used, source, data hash, 
 |---|---|
 | `backend/` | FastAPI service (Python 3.12, managed with uv). Vercel deploys it as a single Python function. |
 | `backend/main.py` | Routes under `/api/v1`, error shape, cache headers, request logging. Vercel entrypoint `main:app`. |
-| `backend/app/data.py` | Elexon fetch, normalisation, data hash, snapshot load, background live verification, live inputs for section E. |
+| `backend/app/data.py` | Elexon fetch, normalisation, data hash, snapshot load, background live verification, live inputs for the Tomorrow (live) tab. |
 | `backend/app/analysis.py` | Pure pandas/numpy functions with no I/O: cutoffs and DST, cleaning, alignment, decision run, metrics, block bootstrap, walk-forward correction, firm-wind quantiles, value of waiting, baselines. |
-| `backend/app/signals.py` | Rules for the signal card and watch list. Each returns `{id, params}`, and the frontend renders the sentence. |
+| `backend/app/signals.py` | Rules for the Why panel signals. Each returns `{id, params}`, and the frontend renders the sentence. |
 | `backend/app/service.py` | Builds each API view from the analysis (cached), plus the CSV export rows. |
 | `backend/app/schemas.py` | Pydantic response models: the API contract the frontend types are generated from. |
 | `backend/data/snapshot.json.gz` | Bundled Elexon snapshot (WINDFOR Nov 30 to Feb 1, FUELHH Dec 1 to Feb 1), columnar and hashed. |
 | `backend/tests/` | pytest suite: unit, no-lookahead property, API contract and golden-output tests, with contract fixtures and frozen golden JSON. |
 | `backend/Dockerfile` | API image (python:3.12-slim + uv, uvicorn on port 8000). |
 | `frontend/` | React 19 + TypeScript + Vite single-page app (pnpm). |
-| `frontend/src/sections/` | One component per section A to E. |
+| `frontend/src/sections/` | One component per tab: Decision, Forecast accuracy, Firm wind (P90), Timing, Tomorrow (live). |
 | `frontend/src/charts/` | Hand-built SVG charts on a shared frame (d3-scale and d3-shape only). |
-| `frontend/src/components/` | Top bar, answer card, KPI tiles, signal card, watch list, source badge, methodology drawer, loading and error states. |
+| `frontend/src/components/` | Top bar, tabs, answer hero, day picker, KPI tiles, Why panel notes, source badge, methodology drawer, loading and error states. |
 | `frontend/src/hooks/` | `useUrlState` (the URL is the single source of UI state) and TanStack Query hooks keyed on the data hash. |
 | `frontend/src/lib/` | API client, client-side firm-wind maths (checked for parity against Python), formatters, signal text, generated OpenAPI types. |
 | `frontend/src/styles/` | Design tokens and app styles. |
@@ -97,11 +97,11 @@ Interactive docs: `/api/docs` (OpenAPI JSON at `/api/openapi.json`). Times in pa
 | Endpoint | Returns |
 |---|---|
 | `GET /api/v1/meta` | Delivery days, auction presets, latency margins, publish slots, data hash, version, live source status |
-| `GET /api/v1/replay?day&cutoff&margin&calib` | Decision run (raw and corrected), other runs flagged too-late, band and quantile grid, delivered wind, KPIs, EPEX vs N2EX comparison, signal and watch list |
+| `GET /api/v1/replay?day&cutoff&margin&calib` | Decision run (raw and corrected), other runs flagged too-late, band and quantile grid, actual generation, KPIs, EPEX vs N2EX comparison, signal and watch list |
 | `GET /api/v1/accuracy?cutoff&margin&calib` | Headline metrics with CIs, raw vs corrected, error by forecast level, per-day errors, alignment sensitivity, baselines |
 | `GET /api/v1/firm?cutoff&margin&calib` | Per-day raw, corrected, actual and walk-forward quantile grid (the client computes firm wind and coverage), plus the firm-method comparison |
-| `GET /api/v1/waiting` | Typical miss per publish slot on common hours, gates, paired gains |
-| `GET /api/v1/live?cutoff&margin` | Section E: latest run for tomorrow with trailing-30-day calibration, or an explicit `unavailable` status |
+| `GET /api/v1/waiting` | Mean absolute error per publish slot on common hours, gates, paired gains |
+| `GET /api/v1/live?cutoff&margin` | Tomorrow (live) tab: latest run for tomorrow with trailing-30-day calibration, or an explicit `unavailable` status |
 | `GET /api/v1/export.csv?view&cutoff&margin&calib&day` | CSV with receipt comment lines first |
 | `GET /api/v1/health` | Liveness, version, data hash, source status |
 

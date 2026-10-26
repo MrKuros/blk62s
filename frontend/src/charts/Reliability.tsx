@@ -7,11 +7,12 @@ interface Props {
   hour: ReliabilityPoint[] // fractions, as lib/firm reliabilityCurve returns them
   day: ReliabilityPoint[]
   marker?: number // selected target fraction
+  markerLabel?: string // "P90"
 }
 
 const byTarget = (a: ReliabilityPoint, b: ReliabilityPoint) => a.target - b.target
 
-export function Reliability({ hour, day, marker }: Props) {
+export function Reliability({ hour, day, marker, markerLabel }: Props) {
   const hours = [...hour].sort(byTarget)
   const days = [...day].sort(byTarget)
   const all = [...hours, ...days]
@@ -25,7 +26,7 @@ export function Reliability({ hour, day, marker }: Props) {
 
   const summary =
     hourAt && dayAt
-      ? ` At a ${pct(hourAt.target)} target, ${pct(hourAt.achieved)} of hours and ${pct(dayAt.achieved)} of whole days were covered.`
+      ? ` At a ${pct(hourAt.target)} target, ${pct(hourAt.achieved)} of hours and ${pct(dayAt.achieved)} of whole days held.`
       : ''
 
   const tooltip = (i: number) => {
@@ -34,8 +35,8 @@ export function Reliability({ hour, day, marker }: Props) {
     return (
       <>
         <div className="chart-tip-title">Target {pct(t)}</div>
-        <TipRow className="s-hour" label="of hours covered" value={pct(hours[i]?.achieved ?? 0)} />
-        {d && <TipRow className="s-day" label="of whole days covered" value={pct(d.achieved)} />}
+        <TipRow className="s-hour" label="of hours held" value={pct(hours[i]?.achieved ?? 0)} />
+        {d && <TipRow className="s-day" label="of whole days held" value={pct(d.achieved)} />}
       </>
     )
   }
@@ -47,14 +48,15 @@ export function Reliability({ hour, day, marker }: Props) {
       yDomain={[lo, 1]}
       xTicks={(x) => x.ticks(5).map((v) => ({ value: v, label: pct(v) }))}
       yFormat={(v) => pct(v)}
-      yLabel="Achieved coverage"
+      yLabel="Achieved: share actual beat the planned level"
+      xLabel="Promised: share of hours actual should beat the planned level (your risk setting)"
       snap={snap}
       tooltip={tooltip}
       legend={
         <>
-          <Key mark="line" className="s-hour" label="Hours covered" />
-          <Key mark="line" className="s-day" label="Whole days covered" />
-          <Key mark="line" className="s-target" label="Target (perfect calibration)" />
+          <Key mark="line" className="s-hour" label="Hours held" />
+          <Key mark="line" className="s-day" label="Whole days held" />
+          <Key mark="line" className="s-target" label="Target" />
         </>
       }
     >
@@ -62,15 +64,19 @@ export function Reliability({ hour, day, marker }: Props) {
         const path = line<ReliabilityPoint>()
           .x((p) => x(p.target))
           .y((p) => y(p.achieved))
-        // Label each line at its low-target end, where hourly and whole-day coverage sit furthest apart.
-        const starts = [
-          { cls: 's-hour', p: hours[0], label: 'Hours' },
-          { cls: 's-day', p: days[0], label: 'Whole days' },
-        ]
         return (
           <>
             <line className="line s-target" x1={x(lo)} y1={y(lo)} x2={x(1)} y2={y(1)} />
-            {hourAt && <line className="marker-rule" x1={x(hourAt.target)} x2={x(hourAt.target)} y1={y(lo)} y2={y(1)} />}
+            {hourAt && (
+              <>
+                <line className="marker-rule" x1={x(hourAt.target)} x2={x(hourAt.target)} y1={y(lo)} y2={y(1)} />
+                {markerLabel && (
+                  <text className="direct-label marker-label" x={x(hourAt.target) - 6} y={y(lo) - 8} textAnchor="end">
+                    {markerLabel}
+                  </text>
+                )}
+              </>
+            )}
             <path className="line s-day" d={path(days) ?? ''} />
             <path className="line s-hour" d={path(hours) ?? ''} />
             {[
@@ -78,14 +84,6 @@ export function Reliability({ hour, day, marker }: Props) {
               { cls: 's-day', p: dayAt },
             ].map(
               ({ cls, p }) => p && <circle key={cls} className={`dot ${cls}`} cx={x(p.target)} cy={y(p.achieved)} r={4.5} />,
-            )}
-            {starts.map(
-              ({ cls, p, label }) =>
-                p && (
-                  <text key={cls} className="direct-label" x={x(p.target) + 4} y={y(p.achieved) - 8}>
-                    {label}
-                  </text>
-                ),
             )}
           </>
         )

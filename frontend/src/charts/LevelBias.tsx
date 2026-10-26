@@ -45,17 +45,17 @@ export function LevelBias({ bins, ceilingMw }: Props) {
         <div className="chart-tip-title">
           Forecast {s.bin.label} · {s.bin.n} h
         </div>
-        <TipRow className="s-raw" label={`forecast, range ${signedGw(s.raw.lo)} to ${signedGw(s.raw.hi)}`} value={signedGw(s.raw.mid)} />
-        <TipRow className="s-corrected" label={`corrected, range ${signedGw(s.corr.lo)} to ${signedGw(s.corr.hi)}`} value={signedGw(s.corr.mid)} />
+        <TipRow className="s-raw" label={`forecast, middle 80% ${signedGw(s.raw.lo)} to ${signedGw(s.raw.hi)}`} value={signedGw(s.raw.mid)} />
+        <TipRow className="s-corrected" label={`corrected, middle 80% ${signedGw(s.corr.lo)} to ${signedGw(s.corr.hi)}`} value={signedGw(s.corr.mid)} />
       </>
     )
   }
 
   return (
     <ChartFrame
-      ariaLabel={`Forecast minus delivered wind by forecast level, median and 10th–90th percentile range per level, before and after correction.${
+      ariaLabel={`Forecast minus actual wind by forecast level, median and middle 80% of hours per level, before and after correction.${
         top ? ` For forecasts of ${top.bin.label} the median over-forecast was ${gw(top.raw.mid)} before correction and ${gw(top.corr.mid)} after.` : ''
-      } Delivered wind never exceeded ${gw(ceilingMw)}.`}
+      } Actual wind never exceeded ${gw(ceilingMw)}.`}
       xDomain={xDomain}
       yDomain={yDomain}
       xTicks={(_, width) =>
@@ -66,15 +66,15 @@ export function LevelBias({ bins, ceilingMw }: Props) {
         }))
       }
       yFormat={(v) => gwTick(v, true)}
-      yLabel="Forecast above delivered, GW, by forecast level"
+      yLabel="Forecast minus actual, GW (+ = forecast too high)"
       snap={centres}
       tooltip={tooltip}
       legend={
         <>
-          <Key mark="area" className="bar-raw" label="Forecast, 10th–90th percentile" />
-          <Key mark="area" className="bar-corrected" label="Corrected, 10th–90th percentile" />
+          <Key mark="area" className="bar-raw" label="Forecast, middle 80% of hours" />
+          <Key mark="area" className="bar-corrected" label="Corrected forecast, middle 80%" />
           <Key mark="line" className="median" label="Median" />
-          <Key mark="line" className="ceiling" label="Highest delivered" />
+          <Key mark="area" className="post-gate" label="Actual wind never reached" />
         </>
       }
     >
@@ -87,10 +87,18 @@ export function LevelBias({ bins, ceilingMw }: Props) {
               {r.mid != null && <line className="median" x1={cx - w / 2 - 2} x2={cx + w / 2 + 2} y1={y(r.mid)} y2={y(r.mid)} />}
             </g>
           )
-        const cx = x(Math.min(Math.max(ceilingMw, xDomain[0]), xDomain[1]))
-        const leftSide = cx > x(xDomain[1]) * 0.6
+        // Levels wholly above the highest actual hour: the forecast went there, the wind never did.
+        const unreached = spans.filter((s) => s.x0 >= ceilingMw)
         return (
           <>
+            {unreached.map((s) => (
+              <g key={s.bin.label}>
+                <rect className="post-gate" x={x(s.x0)} width={x(s.x1) - x(s.x0)} height={height} />
+                {x(s.x1) - x(s.x0) > 130 && <text className="direct-label" x={(x(s.x0) + x(s.x1)) / 2} y={height - 8} textAnchor="middle">
+                  Actual never reached
+                </text>}
+              </g>
+            ))}
             <line className="zero" x2={x(xDomain[1])} y1={y(0)} y2={y(0)} />
             {spans.map((s, i) => {
               const c = x(centres[i] ?? 0)
@@ -102,10 +110,6 @@ export function LevelBias({ bins, ceilingMw }: Props) {
                 </g>
               )
             })}
-            <line className="ceiling" x1={cx} x2={cx} y2={height} />
-            <text className="direct-label" x={leftSide ? cx - 6 : cx + 6} y={10} textAnchor={leftSide ? 'end' : 'start'}>
-              Highest delivered {gw(ceilingMw)}
-            </text>
           </>
         )
       }}
