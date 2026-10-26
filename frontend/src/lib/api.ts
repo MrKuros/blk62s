@@ -5,13 +5,16 @@ export type Meta = S['Meta']
 export type Replay = S['Replay']
 export type Accuracy = S['Accuracy']
 export type Firm = S['Firm']
-export type FirmDay = S['FirmDay']
 export type Waiting = S['Waiting']
 export type Live = S['Live']
 export type Sig = S['Sig']
 export type CI = S['CI']
 export type SourceStatus = S['SourceStatus']
-export type SourceState = SourceStatus['state']
+export type RunInfo = S['RunInfo']
+export type LevelBin = S['LevelBin']
+export type WaitingSlot = S['WaitingSlot']
+export type Gate = S['Gate']
+export type Gain = S['Gain']
 export type Calib = S['Params']['calib']
 export type ExportView = operations['export_csv_api_v1_export_csv_get']['parameters']['query']['view']
 
@@ -23,7 +26,7 @@ export type ExportQuery = Query<'export_csv_api_v1_export_csv_get'>
 
 const BASE = '/api/v1'
 
-export class ApiError extends Error {
+class ApiError extends Error {
   readonly status: number
   readonly field: string | null
 

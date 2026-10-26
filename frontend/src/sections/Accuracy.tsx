@@ -26,7 +26,7 @@ function Body({
   const meanForecast = mean(a.days.map((d) => d.mean_forecast_mw))
   const top = a.by_level.at(-1)
   const levelHours = a.by_level.reduce((n, b) => n + b.n, 0)
-  const worst = a.days.reduce((w, d) => (d.raw_mae > w.raw_mae ? d : w), a.days[0]!)
+  const worst = a.days.reduce((w, d) => (d.raw_mae > w.raw_mae ? d : w))
   const c = a.corrected
   const cut = -c.gain.value / c.raw_mae.value
 

@@ -1,5 +1,5 @@
 import { GateTimeline } from '../charts/GateTimeline'
-import { LineBand, type Series } from '../charts/LineBand'
+import { hourlyPoints, likelyRange, LineBand, type Series } from '../charts/LineBand'
 import { AnswerHero } from '../components/AnswerHero'
 import { Quantity } from '../components/Kpi'
 import { type Note, Notes } from '../components/Notes'
@@ -7,17 +7,16 @@ import { Panel, Section } from '../components/Section'
 import { Await } from '../components/States'
 import { type AnalysisParams, useReplay } from '../hooks/queries'
 import type { Meta, Replay as ReplayData } from '../lib/api'
-import { band, firmHours, mean } from '../lib/firm'
+import { firmHours, mean } from '../lib/firm'
 import { dayLabel, dayShort, delta, gateLabel, gw, pLabel, ukTime } from '../lib/format'
 import { signalText, staleFeed } from '../lib/signals'
 import { gateTimeline } from '../lib/timeline'
 
-const ms = (iso: string) => Date.parse(iso)
 const CONTEXT_RUNS = 3
 
 function chartSeries(d: ReplayData, firm: (number | null)[] | null, r: number, reveal: boolean) {
-  const t = d.hours.map((h) => ms(h.t))
-  const points = (ys: (number | null)[]) => ys.map((y, i) => ({ t: t[i]!, y }))
+  const t = d.hours.map((h) => Date.parse(h.t))
+  const points = (ys: (number | null)[]) => hourlyPoints(t, ys)
   const decision = d.decision_run?.publish_time
   // Context: only the few runs just before the one used (they cover the whole day) and the too-late ones. On reveal
   // they step aside so the comparison that matters, actual against the plan, reads cleanly.
@@ -35,21 +34,15 @@ function chartSeries(d: ReplayData, firm: (number | null)[] | null, r: number, r
       ]
   series.push({ id: 'raw', style: 'raw', points: points(d.hours.map((h) => h.raw)) })
   const q = d.calibration.q
-  if (q) series.push({ id: 'corrected', style: 'corrected', points: points(d.hours.map((h) => h.corrected)) })
+  const corrected = d.hours.map((h) => h.corrected)
+  if (q) series.push({ id: 'corrected', style: 'corrected', points: points(corrected) })
   if (firm) series.push({ id: 'firm', style: 'firm', points: points(firm) })
   if (reveal) series.push({ id: 'actual', style: 'actual', points: points(d.hours.map((h) => h.actual)) })
-  const bandPts =
-    q && r < 50
-      ? band(
-          d.hours.map((h) => h.corrected),
-          q,
-          r,
-        ).flatMap((b, i) => (b.lo == null || b.hi == null ? [] : [{ t: t[i]!, lo: b.lo, hi: b.hi }]))
-      : undefined
+  const bandPts = likelyRange(t, corrected, q, r)
   // Shortfall is actual below the plan: the firm level when there is one, else the published forecast.
   const plan = firm ?? d.hours.map((h) => h.raw)
   const shade = reveal
-    ? d.hours.map((h, i) => ({ t: t[i]!, forecast: plan[i] ?? null, actual: h.actual }))
+    ? d.hours.map((h, i) => ({ t: Date.parse(h.t), forecast: plan[i] ?? null, actual: h.actual }))
     : undefined
   return { series, band: bandPts, shade, nBefore: before.length, nLate: late.length }
 }

@@ -1,8 +1,8 @@
 import { scaleLinear } from 'd3-scale'
 import { type KeyboardEvent, useRef, useState } from 'react'
-import { addDays, dayLabel, leadRange, signedDelta, ukDateTime, ukTime } from '../lib/format'
+import { addDays, dayLabel, HOUR_MS, leadRange, signedDelta, ukDateTime, ukTime } from '../lib/format'
 import type { GateTimeline as Layout, TimelineRun } from '../lib/timeline'
-import { clock, useWidth } from './ChartFrame'
+import { useWidth } from './ChartFrame'
 
 interface Props {
   layout: Layout
@@ -11,7 +11,6 @@ interface Props {
   margin: number
 }
 
-const HOUR = 3_600_000
 const TOP = 8 // frame top
 const MID = 66 // revision baseline: stems rise for upward revisions, drop for downward ones
 const STEM = 30 // longest stem, px
@@ -19,7 +18,7 @@ const AXIS = 112
 const H = AXIS + 42
 
 /** A run that repeats its predecessor exactly: the feed did not move. */
-export const unchanged = (r: TimelineRun) => r.revisionMw != null && Math.abs(r.revisionMw) < 1
+const unchanged = (r: TimelineRun) => r.revisionMw != null && Math.abs(r.revisionMw) < 1
 
 const status = (r: TimelineRun) =>
   r.used
@@ -36,7 +35,7 @@ const revisionText = (r: TimelineRun) =>
       : `${signedDelta(r.revisionMw)} average revision vs previous run`
 
 const describe = (r: TimelineRun) =>
-  `${ukDateTime(new Date(r.publish).toISOString())}. ${status(r)}.${revisionText(r) ? ` ${revisionText(r)}.` : ''}${
+  `${ukDateTime(r.publish)}. ${status(r)}.${revisionText(r) ? ` ${revisionText(r)}.` : ''}${
     r.leadMin == null ? '' : ` Covers ${leadRange(r.leadMin, r.leadMax)}.`
   }`
 
@@ -66,8 +65,8 @@ export function GateTimeline({ layout, day, gateLabel, margin }: Props) {
   ]
   const ticks: number[] = []
   const step = narrow ? 12 : 6
-  for (let t = layout.start; t < layout.end; t += HOUR)
-    if (Number(clock(t).slice(0, 2)) % step === 0) ticks.push(t)
+  for (let t = layout.start; t < layout.end; t += HOUR_MS)
+    if (Number(ukTime(t).slice(0, 2)) % step === 0) ticks.push(t)
   const gx = x(layout.gate)
   const act = active == null ? undefined : layout.runs[active]
   const tipX = act ? x(act.publish) : 0
@@ -102,7 +101,7 @@ export function GateTimeline({ layout, day, gateLabel, margin }: Props) {
           role="group"
           aria-label={`Gate timeline from D-2 to the end of delivery day ${dayLabel(day)}: ${layout.runs.length} forecast runs, ${
             layout.runs.filter((r) => r.tooLate).length
-          } of them after gate closure at ${gateLabel}.${used ? ` The run used was published ${ukDateTime(new Date(used.publish).toISOString())}.` : ''} Use the arrow keys to move between runs.`}
+          } of them after gate closure at ${gateLabel}.${used ? ` The run used was published ${ukDateTime(used.publish)}.` : ''} Use the arrow keys to move between runs.`}
         >
           {/* delivery day + too-late region */}
           <rect
@@ -128,7 +127,7 @@ export function GateTimeline({ layout, day, gateLabel, margin }: Props) {
           {ticks.map((t) => (
             <line
               key={t}
-              className={clock(t) === '00:00' ? 'tl2-day-rule' : 'tl2-hour-rule'}
+              className={ukTime(t) === '00:00' ? 'tl2-day-rule' : 'tl2-hour-rule'}
               x1={x(t)}
               x2={x(t)}
               y1={TOP}
@@ -138,7 +137,7 @@ export function GateTimeline({ layout, day, gateLabel, margin }: Props) {
           <line className="tl2-base" x1={pad} x2={width - pad} y1={MID} y2={MID} />
           <line className="tl2-axis" x1={pad} x2={width - pad} y1={AXIS} y2={AXIS} />
           {ticks
-            .filter((t) => !narrow || clock(t) !== '00:00')
+            .filter((t) => !narrow || ukTime(t) !== '00:00')
             .map((t) => (
               <text
                 key={t}
@@ -147,7 +146,7 @@ export function GateTimeline({ layout, day, gateLabel, margin }: Props) {
                 y={AXIS + 14}
                 textAnchor={t === layout.start ? 'start' : 'middle'}
               >
-                {clock(t)}
+                {ukTime(t)}
               </text>
             ))}
           {days.map((d, i) => (
@@ -226,7 +225,7 @@ export function GateTimeline({ layout, day, gateLabel, margin }: Props) {
           </g>
           {used && !narrow && (
             <text className="tl2-used-label" x={x(used.publish) - 8} y={TOP + 15} textAnchor="end">
-              {ukTime(new Date(used.publish).toISOString())} run used
+              {ukTime(used.publish)} run used
             </text>
           )}
         </svg>
@@ -240,7 +239,7 @@ export function GateTimeline({ layout, day, gateLabel, margin }: Props) {
               transform: 'translate(-50%, calc(-100% - 6px))',
             }}
           >
-            <div className="chart-tip-title">{ukDateTime(new Date(act.publish).toISOString())}</div>
+            <div className="chart-tip-title">{ukDateTime(act.publish)}</div>
             <div className={act.tooLate ? 'tip-late' : act.used ? 'tip-used' : undefined}>{status(act)}</div>
             {revisionText(act) && <div className="tip-row">{revisionText(act)}</div>}
             {act.leadMin != null && <div className="tip-note">{leadRange(act.leadMin, act.leadMax)}</div>}

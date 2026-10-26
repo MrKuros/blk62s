@@ -1,8 +1,8 @@
 import type { KeyboardEvent } from 'react'
-import { dayLabel, dayShort, gw, signedGw } from '../lib/format'
+import { dayLabel, dayShort, gw, signedGw, weekdayIndex } from '../lib/format'
 import './charts.css'
 
-export interface CalendarDay {
+interface CalendarDay {
   day: string // YYYY-MM-DD delivery day
   value: number | null // mean forecast − actual, MW (positive = forecast too high)
 }
@@ -19,9 +19,6 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const describe = (v: number | null) =>
   v == null ? 'no data' : `forecast too ${v > 0 ? 'high' : 'low'} by ${gw(Math.abs(v))}`
 
-/** Monday-first weekday index of a delivery day. */
-const weekday = (day: string) => (new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7
-
 /** One cell per delivery day on a Monday-first calendar, shaded by forecast error: amber where the forecast was too
  * high, blue where too low. A radiogroup: arrows move a day, up/down a week. */
 export function ErrorCalendar({ days, selected, pins, onSelect }: Props) {
@@ -34,7 +31,7 @@ export function ErrorCalendar({ days, selected, pins, onSelect }: Props) {
   }
   const index = days.findIndex((d) => d.day === selected)
   const focusIndex = index === -1 ? 0 : index
-  const lead = days[0] ? weekday(days[0].day) : 0
+  const lead = days[0] ? weekdayIndex(days[0].day) : 0
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const last = days.length - 1

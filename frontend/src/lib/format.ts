@@ -3,6 +3,7 @@
 export const DASH = '–'
 const MINUS = '−'
 const TZ = 'Europe/London'
+export const HOUR_MS = 3_600_000
 
 type Num = number | null | undefined
 
@@ -23,7 +24,6 @@ export const signedGw = (mw: Num, dp = 1): string => (ok(mw) ? `${signed(mw / 10
 export const mw = (v: Num): string => (ok(v) ? `${fixed(v, 0)} MW` : DASH)
 export const signedMw = (v: Num): string => (ok(v) ? `${signed(v, 0)} MW` : DASH)
 export const pct = (frac: Num, dp = 0): string => (ok(frac) ? `${fixed(frac * 100, dp)}%` : DASH)
-export const signedPct = (frac: Num, dp = 0): string => (ok(frac) ? `${signed(frac * 100, dp)}%` : DASH)
 export const gwh = (v: Num, dp = 1): string => (ok(v) ? `${fixed(v, dp)} GWh` : DASH)
 
 /** A change between two levels: MW integers under 1 GW, GW at 1 dp above, always signed. */
@@ -53,7 +53,12 @@ export function mwRange(lo: Num, hi: Num): string {
   return `${fixed(lo, 0)}${sep}${fixed(hi, 0)} MW`
 }
 
-const timeFmt = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })
+const timeFmt = new Intl.DateTimeFormat('en-GB', {
+  timeZone: TZ,
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+})
 const dateTimeFmt = new Intl.DateTimeFormat('en-GB', {
   timeZone: TZ,
   weekday: 'short',
@@ -77,26 +82,29 @@ const dayFmt = new Intl.DateTimeFormat('en-GB', {
 })
 const dayShortFmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', day: 'numeric', month: 'short' })
 
-const instant = (iso: string | null | undefined): Date | null => {
-  if (!iso) return null
-  const d = new Date(iso)
+/** An ISO string or epoch ms. */
+type Instant = string | number | null | undefined
+
+const instant = (at: Instant): Date | null => {
+  if (at == null || at === '') return null
+  const d = new Date(at)
   return Number.isNaN(d.getTime()) ? null : d
 }
 const calendar = (day: string | null | undefined): Date | null => instant(day ? `${day}T00:00:00Z` : null)
 
 /** UK local clock time of a UTC instant, e.g. "07:30". */
-export const ukTime = (iso: string | null | undefined): string => {
-  const d = instant(iso)
+export const ukTime = (at: Instant): string => {
+  const d = instant(at)
   return d ? timeFmt.format(d) : DASH
 }
 /** "Sun 11 Jan, 07:30" in UK local time. */
-export const ukDateTime = (iso: string | null | undefined): string => {
-  const d = instant(iso)
+export const ukDateTime = (at: Instant): string => {
+  const d = instant(at)
   return d ? dateTimeFmt.format(d) : DASH
 }
 /** "Sun 11 Jan": the UK local date of a UTC instant. */
-export const ukDay = (iso: string | null | undefined): string => {
-  const d = instant(iso)
+export const ukDay = (at: Instant): string => {
+  const d = instant(at)
   return d ? ukDayFmt.format(d) : DASH
 }
 /** "Mon 12 Jan" for a YYYY-MM-DD delivery day. */
@@ -121,6 +129,12 @@ export function ukWallTime(day: string, hhmm: string): number {
 /** UTC epoch ms of 00:00 UK time on a YYYY-MM-DD day. The clocks change at 01:00 UTC, so the offset at the guess is the
  * one in force at UK midnight. */
 export const ukMidnight = (day: string): number => ukWallTime(day, '00:00')
+
+/** Minutes since midnight of an HH:MM clock time. */
+export const hhmmMinutes = (hhmm: string): number => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5))
+
+/** Monday-first weekday index (0-6) of a YYYY-MM-DD day. */
+export const weekdayIndex = (day: string): number => (new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7
 
 /** The YYYY-MM-DD calendar day `n` days from `day`. */
 export const addDays = (day: string, n: number): string =>

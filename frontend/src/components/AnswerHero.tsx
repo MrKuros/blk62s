@@ -1,9 +1,7 @@
-import type { components } from '../lib/api-types'
+import type { RunInfo } from '../lib/api'
 import { mean } from '../lib/firm'
 import { beatLabel, gw, leadRange, pLabel, ukDateTime, ukDay, ukTime } from '../lib/format'
 import { Quantity } from './Kpi'
-
-type RunInfo = components['schemas']['RunInfo']
 
 export interface HeroProps {
   r: number

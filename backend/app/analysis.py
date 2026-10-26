@@ -307,7 +307,7 @@ def walk_forward(
 ) -> tuple[pd.DataFrame, dict[date, DayFit]]:
     """Fit every day on its own past; returns the rows of `days` with corrected, cerr and calibrating.
 
-    While calibrating, corrected = forecast (the raw forecast is shown with a badge).
+    While calibrating, corrected = forecast (the UI shows the raw forecast as warm-up).
     """
     cuts = frame.drop_duplicates("day").set_index("day")["cutoff"]
     fits = {d: fit_day(frame, d, train_start, known_before=cuts.get(d)) for d in days}
@@ -546,7 +546,7 @@ def unchanged_runs(wf: pd.DataFrame, pub: pd.Timestamp) -> tuple[int, pd.Timesta
     return n, first
 
 
-# ---------------------------------------------------------------- live (Section E)
+# ---------------------------------------------------------------- live (Tomorrow tab)
 
 LIVE_TRAIN_DAYS = 30
 

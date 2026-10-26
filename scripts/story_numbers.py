@@ -1,4 +1,4 @@
-"""Print the pitch numbers (README, video, PLAN §2) as markdown, computed from the bundled snapshot.
+"""Print the headline numbers (README, docs/METHODOLOGY.md) as markdown, computed from the bundled snapshot.
 
 Run: uv run --project backend python scripts/story_numbers.py
 Everything is walk-forward / out of sample unless a row says "in-sample". CIs are approximate 90%
@@ -6,6 +6,7 @@ moving-block bootstrap intervals (3-day blocks, 2,000 resamples, fixed seed) ove
 """
 
 import sys
+from collections.abc import Callable
 from datetime import date
 from pathlib import Path
 
@@ -29,7 +30,7 @@ def pct(v: float) -> str:
     return f"{100 * v:.1f}%".replace("-", "−")
 
 
-def ci(t: tuple[float, float, float], f=mw) -> str:
+def ci(t: tuple[float, float, float], f: Callable[[float], str] = mw) -> str:
     return f"{f(t[0])} [{f(t[1])}, {f(t[2])}]"
 
 

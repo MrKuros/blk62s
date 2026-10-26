@@ -83,7 +83,7 @@ def test_run_jump_needs_three_identical_runs():
     assert S.run_jump(None) is None
 
 
-def test_priority_and_watch_list():
+def test_priority_order():
     f = np.full(len(HOURS), 19_000.0)
     out = S.day_signals(day_frame(f, f - 2_000), prev_run(17_000), FIT, 17_000, stale=(4, PREV_PUB))
     assert ids(out) == ["run_jump", "above_ceiling", "revision", "correction"]

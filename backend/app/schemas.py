@@ -1,4 +1,4 @@
-"""API contract (Pydantic v2). Frozen after the contract phase: the frontend types are generated from it.
+"""API contract (Pydantic v2): the frontend types are generated from the OpenAPI schema of these models.
 
 Conventions:
 - Times are UTC ISO-8601; the UI renders Europe/London.

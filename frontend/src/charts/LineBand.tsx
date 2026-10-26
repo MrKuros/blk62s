@@ -1,6 +1,7 @@
 import { area, line } from 'd3-shape'
-import { gw, gwRange } from '../lib/format'
-import { ChartFrame, clock, hourTicks, Key, TipRow } from './ChartFrame'
+import { band as likelyBand } from '../lib/firm'
+import { gw, gwRange, HOUR_MS, ukTime } from '../lib/format'
+import { ChartFrame, hourTicks, Key, TipRow } from './ChartFrame'
 
 export type SeriesStyle = 'raw' | 'corrected' | 'firm' | 'faint' | 'late' | 'actual'
 export interface Point {
@@ -46,7 +47,24 @@ const LABEL: Record<SeriesStyle, string> = {
   late: 'Too late for the gate',
   actual: 'Actual (outturn)',
 }
-const HOUR = 3_600_000
+
+/** Pairs hourly values with their hour starts (epoch ms). */
+export const hourlyPoints = (t: readonly number[], ys: readonly (number | null)[]): Point[] =>
+  t.map((h, i) => ({ t: h, y: ys[i] ?? null }))
+
+/** The likely range around the corrected forecast; none without a quantile grid or at r = 50, where it collapses. */
+export function likelyRange(
+  t: readonly number[],
+  corrected: readonly (number | null)[],
+  q: readonly number[] | null | undefined,
+  r: number,
+): BandPoint[] | undefined {
+  if (!q || r >= 50) return undefined
+  return likelyBand(corrected, q, r).flatMap((b, i) => {
+    const h = t[i]
+    return b.lo == null || b.hi == null || h === undefined ? [] : [{ t: h, lo: b.lo, hi: b.hi }]
+  })
+}
 
 const both = (d: ShadePoint) => d.forecast != null && d.actual != null
 
@@ -67,7 +85,7 @@ export const withCrossings = (pts: ShadePoint[]) =>
 const withGaps = (pts: BandPoint[]) =>
   pts.flatMap((b, i) => {
     const prev = pts[i - 1]
-    return prev && b.t - prev.t > HOUR ? [{ t: b.t, lo: NaN, hi: NaN }, b] : [b]
+    return prev && b.t - prev.t > HOUR_MS ? [{ t: b.t, lo: NaN, hi: NaN }, b] : [b]
   })
 
 export function LineBand({
@@ -85,7 +103,7 @@ export function LineBand({
   const ts = [...series.flatMap((s) => s.points.map((p) => p.t)), ...(band ?? []).map((b) => b.t)]
   const ys = [...series.flatMap((s) => s.points.map((p) => p.y ?? 0)), ...(band ?? []).map((b) => b.hi)]
   const t0 = ts.length ? Math.min(...ts) : 0
-  const t1 = ts.length ? Math.max(...ts) : HOUR
+  const t1 = ts.length ? Math.max(...ts) : HOUR_MS
   const top = yMax ?? Math.max(5000, Math.ceil((Math.max(0, ...ys) * 1.05) / 5000) * 5000)
 
   // Earlier and late runs are context; the readout lists the decision run, its correction and the outcome.
@@ -105,7 +123,7 @@ export function LineBand({
     return (
       <>
         <div className="chart-tip-title">
-          {clock(t)}–{clock(t + HOUR)}
+          {ukTime(t)}–{ukTime(t + HOUR_MS)}
         </div>
         {TIP_ORDER.map((style) => {
           const s = lookup.find((l) => l.style === style)
@@ -134,7 +152,7 @@ export function LineBand({
   return (
     <ChartFrame
       ariaLabel={ariaLabel}
-      xDomain={[t0, t1 > t0 ? t1 : t0 + HOUR]}
+      xDomain={[t0, t1 > t0 ? t1 : t0 + HOUR_MS]}
       yDomain={[0, top]}
       xTicks={hourTicks}
       yLabel="GW"

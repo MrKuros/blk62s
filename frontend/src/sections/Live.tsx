@@ -1,11 +1,11 @@
-import { LineBand, type Series } from '../charts/LineBand'
+import { hourlyPoints, likelyRange, LineBand, type Series } from '../charts/LineBand'
 import { AnswerHero } from '../components/AnswerHero'
 import { Notes } from '../components/Notes'
 import { Panel, Section, Split } from '../components/Section'
 import { Await } from '../components/States'
 import { useLive } from '../hooks/queries'
 import type { Live as LiveData } from '../lib/api'
-import { band, firmHours, mean } from '../lib/firm'
+import { firmHours, mean } from '../lib/firm'
 import { dayLabel, dayShort, gateLabel, pLabel, ukDateTime } from '../lib/format'
 
 function Unavailable({ d }: { d: LiveData }) {
@@ -21,19 +21,14 @@ function Unavailable({ d }: { d: LiveData }) {
 function Body({ d, r }: { d: LiveData; r: number }) {
   if (d.status === 'unavailable') return <Unavailable d={d} />
   const t = d.hours.map((h) => Date.parse(h.t))
-  const points = (ys: (number | null)[]) => ys.map((y, i) => ({ t: t[i]!, y }))
+  const points = (ys: (number | null)[]) => hourlyPoints(t, ys)
   const q = d.calibration?.q
   const corrected = d.hours.map((h) => h.corrected)
   const firm = q ? firmHours(corrected, q, r) : null
   const series: Series[] = [{ id: 'raw', style: 'raw', points: points(d.hours.map((h) => h.raw)) }]
   if (q) series.push({ id: 'corrected', style: 'corrected', points: points(corrected) })
   if (firm) series.push({ id: 'firm', style: 'firm', points: points(firm) })
-  const bandPts =
-    q && r < 50
-      ? band(corrected, q, r).flatMap((b, i) =>
-          b.lo == null || b.hi == null ? [] : [{ t: t[i]!, lo: b.lo, hi: b.hi }],
-        )
-      : undefined
+  const bandPts = likelyRange(t, corrected, q, r)
   const run = d.decision_run
   const cal = d.calibration
   const gate = gateLabel(d.params.cutoff, d.params.cutoff_local)

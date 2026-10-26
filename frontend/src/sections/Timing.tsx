@@ -1,16 +1,17 @@
-import { WaitingCurve } from '../charts/WaitingCurve'
+import { slotName, WaitingCurve } from '../charts/WaitingCurve'
 import { Kpi, KpiStrip } from '../components/Kpi'
 import { Notes } from '../components/Notes'
 import { Panel, Section, Split } from '../components/Section'
 import { Await } from '../components/States'
 import { useWaiting } from '../hooks/queries'
-import type { Waiting as WaitingData } from '../lib/api'
+import type { CI, Waiting as WaitingData } from '../lib/api'
 import { delta, gw, gwRange, mwRange } from '../lib/format'
 
 type AuctionId = WaitingData['gates'][number]['auction']
 
-const slotName = (s: { day_offset: number; local_time: string }) => `D-${-s.day_offset} ${s.local_time}`
-const spansZero = (ci: { lo: number; hi: number }) => ci.lo <= 0 && ci.hi >= 0
+const spansZero = (ci: CI) => ci.lo <= 0 && ci.hi >= 0
+/** The 90% range of a difference as a size, matching a headline that carries the direction in words. */
+const sizeRange = (ci: CI) => (ci.value <= 0 ? mwRange(-ci.hi, -ci.lo) : mwRange(ci.lo, ci.hi))
 
 function Body({ w, auction }: { w: WaitingData; auction: AuctionId }) {
   const byId = new Map(w.slots.map((s) => [s.id, s]))
@@ -42,8 +43,7 @@ function Body({ w, auction }: { w: WaitingData; auction: AuctionId }) {
         <p className="finding-body">
           N2EX ({n2ex?.local_time}) gets the {runOf(n2ex)} run; EPEX ({epex?.local_time}) the {runOf(epex)}{' '}
           run. Over January N2EX's later run {ad.value <= 0 ? 'cut' : 'raised'} mean absolute error by{' '}
-          <strong>{delta(ad.value)}</strong> (90% range{' '}
-          {ad.value <= 0 ? mwRange(-ad.hi, -ad.lo) : mwRange(ad.lo, ad.hi)})
+          <strong>{delta(ad.value)}</strong> (90% range {sizeRange(ad)})
           {spansZero(ad) ? ': too small to tell from zero.' : '.'}
         </p>
       </div>
@@ -53,14 +53,7 @@ function Body({ w, auction }: { w: WaitingData; auction: AuctionId }) {
           label={!gain || gain.diff.value <= 0 ? 'Error saved by waiting' : 'Error added by waiting'}
           hint="mean absolute error, two days out vs the gate"
           value={gain ? delta(gain.diff.value) : '–'}
-          sub={
-            gain &&
-            `${from} → ${slotName(byId.get(gain.to_slot)!)} · 90% range ${
-              gain.diff.value <= 0
-                ? mwRange(-gain.diff.hi, -gain.diff.lo)
-                : mwRange(gain.diff.lo, gain.diff.hi)
-            }`
-          }
+          sub={gain && `${from} → ${slotName(byId.get(gain.to_slot)!)} · 90% range ${sizeRange(gain.diff)}`}
         />
         <Kpi
           label={`Error at the ${label} gate`}

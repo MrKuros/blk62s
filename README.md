@@ -97,7 +97,7 @@ Interactive docs: `/api/docs` (OpenAPI JSON at `/api/openapi.json`). Times in pa
 | Endpoint | Returns |
 |---|---|
 | `GET /api/v1/meta` | Delivery days, auction presets, latency margins, publish slots, data hash, version, live source status |
-| `GET /api/v1/replay?day&cutoff&margin&calib` | Decision run (raw and corrected), other runs flagged too-late, band and quantile grid, actual generation, KPIs, EPEX vs N2EX comparison, signal and watch list |
+| `GET /api/v1/replay?day&cutoff&margin&calib` | Decision run (raw and corrected), other runs flagged too-late, band and quantile grid, actual generation, KPIs, EPEX vs N2EX comparison, headline signal and the other signals that fired |
 | `GET /api/v1/accuracy?cutoff&margin&calib` | Headline metrics with CIs, raw vs corrected, error by forecast level, per-day errors, alignment sensitivity, baselines |
 | `GET /api/v1/firm?cutoff&margin&calib` | Per-day raw, corrected, actual and walk-forward quantile grid (the client computes firm wind and coverage), plus the firm-method comparison |
 | `GET /api/v1/waiting` | Mean absolute error per publish slot on common hours, gates, paired gains |
@@ -126,13 +126,14 @@ The full reasoning, including caveats such as curtailment, the 28 Jan NESO IT in
 
 ```bash
 cd backend  && uv run ruff check . && uv run ruff format --check . && uv run pytest -q
-cd frontend && pnpm lint && pnpm typecheck && pnpm test --run && pnpm build
+cd frontend && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test --run && pnpm build
+cd frontend && pnpm test:e2e   # Playwright smoke tests on a production build; starts the API and a preview server if needed
 ```
 
 - **No-lookahead property test.** For every delivery day, both auctions, custom cutoffs and every latency margin, it checks three things: only runs published before the cutoff are used, training stops at D-2, and persistence and ceiling values use only FUELHH rows published before the cutoff. It then doubles every value published after the cutoff and asserts the replay is unchanged.
 - **Unit tests.** Cutoff strictness and DST (29 Mar and 25 Oct), 23- and 25-hour days, hindcast drop, alignment, walk-forward coverage on synthetic data, warm-up, block-bootstrap determinism, common-hours rule, the off-schedule 12:25 run, every signal rule, and degraded data-source paths.
 - **Contract and golden tests.** Every route is checked against its response model, along with 422s, cache headers and the CSV receipt. The views are frozen as golden JSON (`UPDATE_GOLDEN=1` regenerates them along with the parity fixture for the client-side firm-wind maths).
-- **Frontend tests (Vitest).** URL state, formatters, firm-wind maths (parity with Python within 1e-9) and signal text.
+- **Frontend tests.** Vitest covers URL state, formatters, firm-wind maths (parity with Python within 1e-9), signal text, the gate timeline, live refresh timing and the charts. Playwright smoke tests drive the built app against the real API.
 - **CI** (`.github/workflows/ci.yml`) runs all of the above. It fails if the backend OpenAPI schema or the generated TypeScript types drift from what is committed, and it builds both Docker images on `main`.
 
 ## Use of AI tools

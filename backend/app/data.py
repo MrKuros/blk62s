@@ -1,8 +1,8 @@
-"""Elexon data access: bundled snapshot (primary), live verification, live inputs for Section E.
+"""Elexon data access: bundled snapshot (primary), live verification, live inputs for the Tomorrow tab.
 
 The snapshot is the source of truth for the January 2026 pilot. Historic Elexon data does not
 change, so a live fetch adds no information; it is only used to *verify* the snapshot and to
-power the "Tomorrow, live" section.
+power the Tomorrow (live) tab.
 """
 
 from __future__ import annotations
@@ -249,7 +249,7 @@ def start_verify() -> None:
     threading.Thread(target=verify_once, daemon=True, name="snapshot-verify").start()
 
 
-# ---------------------------------------------------------------- live inputs (Section E)
+# ---------------------------------------------------------------- live inputs (Tomorrow tab)
 
 LIVE_TTL_S = 30 * 60
 LIVE_FAIL_TTL_S = 60

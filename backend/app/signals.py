@@ -78,7 +78,7 @@ def day_signals(
     ceiling_mw: float | None,
     stale: tuple[int, pd.Timestamp] | None = None,
 ) -> tuple[Sig | None, list[Sig]]:
-    """(headline, watch list): the first rule that fires, in priority order, and the rest.
+    """(headline, others): the first rule that fires, in priority order, and the rest.
 
     day_frame: the day's walk_forward rows (forecast, corrected). prev_run: run_for_day rows of the run
     before the decision run. stale: analysis.unchanged_runs for the decision run.

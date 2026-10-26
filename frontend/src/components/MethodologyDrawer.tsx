@@ -2,7 +2,7 @@ import { Fragment, type ReactNode, useEffect, useRef } from 'react'
 import { type AnalysisParams, useAccuracy, useFirm, useReplay } from '../hooks/queries'
 import { type Accuracy, type ExportView, exportUrl, type Firm, type Meta } from '../lib/api'
 import { coverage } from '../lib/firm'
-import { biasGw, dayShort, gateLabel, gw, pct, riskLabel, ukDateTime } from '../lib/format'
+import { biasGw, dayShort, gateLabel, gw, hhmmMinutes, pct, riskLabel, ukDateTime } from '../lib/format'
 
 interface Props {
   open: boolean
@@ -77,18 +77,16 @@ const GLOSSARY: [string, string][] = [
   ],
 ]
 
-const toMinutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5))
-
 /** D-2 → D on one axis: what is known when, and which run the gate rule picks. */
 function Timeline({ meta, cutoffLocal, margin }: { meta: Meta; cutoffLocal: string; margin: number }) {
   const W = 720
   const perDay = 220
   const x0 = 60
   const x = (offset: number, minutes: number) => x0 + (offset + 2) * perDay + (minutes / 1440) * perDay
-  const gate = toMinutes(cutoffLocal) - margin
+  const gate = hhmmMinutes(cutoffLocal) - margin
   const gx = x(-1, gate)
-  const runs = meta.slots.map((s) => ({ ...s, at: x(s.day_offset, toMinutes(s.local_time)) }))
-  const before = runs.filter((s) => s.day_offset === -2 || toMinutes(s.local_time) < gate)
+  const runs = meta.slots.map((s) => ({ ...s, at: x(s.day_offset, hhmmMinutes(s.local_time)) }))
+  const before = runs.filter((s) => s.day_offset === -2 || hhmmMinutes(s.local_time) < gate)
   const decision = before.at(-1)
   return (
     <div className="timeline-scroll">

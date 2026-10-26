@@ -1,12 +1,8 @@
 import { scaleLinear } from 'd3-scale'
 import { line } from 'd3-shape'
-import type { components } from '../lib/api-types'
-import { biasGw, delta, gw, gwRange, mwRange } from '../lib/format'
+import type { Gain, Gate, WaitingSlot } from '../lib/api'
+import { biasGw, delta, gw, gwRange, hhmmMinutes, mwRange } from '../lib/format'
 import { ChartFrame, gwTick, Key, TipRow } from './ChartFrame'
-
-type WaitingSlot = components['schemas']['WaitingSlot']
-type Gate = components['schemas']['Gate']
-type Gain = components['schemas']['Gain']
 
 interface Props {
   slots: WaitingSlot[]
@@ -18,9 +14,10 @@ const DAY = 1440
 const GATE_LABEL: Record<Gate['auction'], string> = { epex: 'EPEX', n2ex: 'N2EX' }
 
 /** Minutes from D-2 00:00 local, so slots and gates share one honest time axis. */
-const minutes = (dayOffset: -2 | -1, hhmm: string) =>
-  (dayOffset + 2) * DAY + Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5))
-const slotName = (s: WaitingSlot) => `D-${-s.day_offset} ${s.local_time}`
+const minutes = (dayOffset: -2 | -1, hhmm: string) => (dayOffset + 2) * DAY + hhmmMinutes(hhmm)
+/** "D-1 07:30". */
+export const slotName = (s: Pick<WaitingSlot, 'day_offset' | 'local_time'>) =>
+  `D-${-s.day_offset} ${s.local_time}`
 const unavailable = (s: WaitingSlot) => s.post_gate.epex && s.post_gate.n2ex
 
 const axisTicks = (_: unknown, width: number) => {

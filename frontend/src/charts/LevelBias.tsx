@@ -1,9 +1,7 @@
 import { scaleLinear } from 'd3-scale'
-import type { components } from '../lib/api-types'
+import type { LevelBin } from '../lib/api'
 import { gw, signedGw } from '../lib/format'
 import { ChartFrame, gwTick, Key, TipRow } from './ChartFrame'
-
-type LevelBin = components['schemas']['LevelBin']
 
 interface Props {
   bins: LevelBin[]

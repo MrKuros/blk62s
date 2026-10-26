@@ -42,7 +42,7 @@ describe('signalText', () => {
     expect(signalText(null)).toBeNull()
   })
 
-  it('finds the frozen-feed signal among the main signal and watch list', () => {
+  it('finds the frozen-feed signal among the headline and the other signals', () => {
     expect(
       staleFeed([sig('correction', { mw: 1 }), sig('run_jump', { runs: 5, since: '2026-01-26T18:30:00Z' })]),
     ).toEqual({

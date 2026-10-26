@@ -4,6 +4,7 @@ import csv
 import io
 import logging
 import time
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime, timedelta
 from datetime import time as clock
@@ -55,7 +56,7 @@ ERRORS = {422: {"model": ErrorBody}}
 class ParamError(ValueError):
     """A query parameter that passed type validation but is not allowed (e.g. a day outside the pilot)."""
 
-    def __init__(self, field: str, message: str):
+    def __init__(self, field: str, message: str) -> None:
         super().__init__(message)
         self.field = field
 
@@ -83,7 +84,7 @@ def _error(code: str, message: str, field: str | None = None) -> JSONResponse:
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     data.start_verify()
     yield
 
@@ -112,7 +113,7 @@ async def _param_error(_: Request, exc: ParamError) -> JSONResponse:
 
 
 @app.middleware("http")
-async def _log_requests(request: Request, call_next):
+async def _log_requests(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
     start = time.perf_counter()
     response = await call_next(request)
     ms = (time.perf_counter() - start) * 1000

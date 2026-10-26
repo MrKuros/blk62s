@@ -8,6 +8,7 @@ import {
   type PointerEvent,
   type ReactNode,
 } from 'react'
+import { HOUR_MS, ukTime } from '../lib/format'
 import './charts.css'
 
 export type Scale = ScaleLinear<number, number>
@@ -16,7 +17,7 @@ export interface Tick {
   label: string
   anchor?: 'start' | 'middle' | 'end'
 }
-export interface Plot {
+interface Plot {
   x: Scale
   y: Scale
   width: number
@@ -24,29 +25,20 @@ export interface Plot {
 }
 
 const M = { top: 12, right: 16, bottom: 28, left: 44 }
-const HOUR = 3_600_000
 
 const gwNumber = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 1 })
-const londonHM = new Intl.DateTimeFormat('en-GB', {
-  timeZone: 'Europe/London',
-  hour: '2-digit',
-  minute: '2-digit',
-  hourCycle: 'h23',
-})
 
 /** Axis tick: GW without unit or trailing zeros, true minus, optional explicit plus. */
 export const gwTick = (mw: number, signed = false) =>
   (signed && mw > 0 ? '+' : '') + gwNumber.format(mw / 1000).replace('-', '−')
-/** UK local clock time of an epoch-ms instant (lib/format's ukTime takes ISO strings). */
-export const clock = (ms: number) => londonHM.format(ms)
 
 /** Ticks on Europe/London whole hours (every 3 h, or 6 h when narrow); UK offsets are whole hours. */
 export function hourTicks(x: Scale, width: number): Tick[] {
   const [a = 0, b = 0] = x.domain()
   const step = width < 420 ? 6 : 3
   const ticks: Tick[] = []
-  for (let t = Math.ceil(a / HOUR) * HOUR; t <= b; t += HOUR) {
-    const label = clock(t)
+  for (let t = Math.ceil(a / HOUR_MS) * HOUR_MS; t <= b; t += HOUR_MS) {
+    const label = ukTime(t)
     if (Number(label.slice(0, 2)) % step === 0) ticks.push({ value: t, label })
   }
   return ticks

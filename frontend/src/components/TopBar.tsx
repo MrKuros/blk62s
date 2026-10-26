@@ -1,5 +1,5 @@
 import { type ReactNode, useState } from 'react'
-import type { UrlState } from '../hooks/useUrlState'
+import { HHMM, type UrlState } from '../hooks/useUrlState'
 import type { Meta } from '../lib/api'
 import { riskFromCosts } from '../lib/firm'
 import { addDays, dayLabel, pLabel, riskLabel } from '../lib/format'
@@ -17,7 +17,6 @@ const Label = ({ text, hint }: { text: string; hint: string }) => (
   </span>
 )
 
-const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/
 const N2EX_NOTE = 'The 09:30 run arrives 20 min before this gate; this assumes it can be downloaded in time.'
 
 function Segmented<T extends string | number>({

@@ -5,7 +5,7 @@ import { ukDateTime, ukDay, ukTime } from '../lib/format'
 const when = (at: string) =>
   (ukDay(at) === ukDay(new Date().toISOString()) ? 'today' : ukDay(at)) + ` ${ukTime(at)}`
 
-export const SOURCE_TEXT = {
+const SOURCE_TEXT = {
   checking: () => 'Snapshot · checking Elexon…',
   verified: (at: string | null) => `Checked against Elexon${at ? ` ${when(at)}` : ''}`,
   changed: () => 'Elexon data changed since snapshot',

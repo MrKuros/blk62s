@@ -1,5 +1,5 @@
 import { type KeyboardEvent, useEffect, useRef } from 'react'
-import { dayLabel, dayShort } from '../lib/format'
+import { dayLabel, dayShort, weekdayIndex } from '../lib/format'
 
 export const SHOWCASE = [
   { day: '2026-01-12', note: 'forecast above 20 GW' },
@@ -8,6 +8,7 @@ export const SHOWCASE = [
 ]
 const PINS = new Set(SHOWCASE.map((s) => s.day))
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+const STEP: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 7, ArrowUp: -7 }
 
 const close = (el: HTMLDetailsElement | null, refocus: boolean) => {
   if (!el?.open) return
@@ -28,6 +29,8 @@ export function DayPicker({
 }) {
   const ref = useRef<HTMLDetailsElement>(null)
   const i = days.indexOf(value)
+  const prev = i > 0 ? days[i - 1] : undefined
+  const next = i === -1 ? undefined : days[i + 1]
   const pick = (d: string) => {
     onChange(d)
     close(ref.current, true)
@@ -53,21 +56,15 @@ export function DayPicker({
     const buttons = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('.dp-day')]
     const at = buttons.indexOf(document.activeElement as HTMLButtonElement)
     if (at === -1) return
-    const step: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 7, ArrowUp: -7 }
+    const step = STEP[e.key]
     const target =
-      e.key === 'Home'
-        ? 0
-        : e.key === 'End'
-          ? buttons.length - 1
-          : step[e.key] === undefined
-            ? null
-            : at + step[e.key]!
+      e.key === 'Home' ? 0 : e.key === 'End' ? buttons.length - 1 : step === undefined ? null : at + step
     if (target == null) return
     e.preventDefault()
     buttons[Math.min(buttons.length - 1, Math.max(0, target))]?.focus()
   }
 
-  const lead = days[0] ? (new Date(`${days[0]}T00:00:00Z`).getUTCDay() + 6) % 7 : 0
+  const lead = days[0] ? weekdayIndex(days[0]) : 0
   const focusDay = i === -1 ? days[0] : value
   return (
     <div className="daypicker">
@@ -75,8 +72,8 @@ export function DayPicker({
         type="button"
         className="icon-btn"
         aria-label="Previous delivery day"
-        disabled={i <= 0}
-        onClick={() => onChange(days[i - 1]!)}
+        disabled={!prev}
+        onClick={() => prev && onChange(prev)}
       >
         ‹
       </button>
@@ -143,8 +140,8 @@ export function DayPicker({
         type="button"
         className="icon-btn"
         aria-label="Next delivery day"
-        disabled={i === -1 || i >= days.length - 1}
-        onClick={() => onChange(days[i + 1]!)}
+        disabled={!next}
+        onClick={() => next && onChange(next)}
       >
         ›
       </button>

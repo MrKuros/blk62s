@@ -57,7 +57,7 @@ def ratio(x: float) -> float:
     return round(float(x), 4)
 
 
-def ci(t: tuple[float, float, float], f=mw) -> S.CI:
+def ci(t: tuple[float, float, float], f: Callable[[float], float | None] = mw) -> S.CI:
     return S.CI(value=f(t[0]), lo=f(t[1]), hi=f(t[2]))
 
 

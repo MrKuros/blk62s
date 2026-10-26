@@ -1,9 +1,7 @@
 // Layout data for the gate timeline: every forecast run published from D-2 00:00 to D 24:00 (UK), the gate, and the
 // delivery day, as epoch ms. Pure, so the chart only maps it to pixels.
 import type { Replay } from './api'
-import { addDays, ukMidnight, ukWallTime } from './format'
-
-const HOUR = 3_600_000
+import { addDays, HOUR_MS, ukMidnight, ukWallTime } from './format'
 
 export interface TimelineRun {
   publish: number
@@ -44,7 +42,7 @@ export function gateTimeline(d: Replay): GateTimeline {
         n++
       })
     const covered = hours.filter((_, i) => run.values[i] != null)
-    const lead = (t: number | undefined) => (t === undefined ? null : (t - publish) / HOUR)
+    const lead = (t: number | undefined) => (t === undefined ? null : (t - publish) / HOUR_MS)
     return {
       publish,
       tooLate: run.too_late,

@@ -2,11 +2,11 @@
 import { useMemo, useSyncExternalStore } from 'react'
 import { RISK_PRESETS, R_MAX, R_MIN } from '../lib/firm'
 
-export type AuctionChoice = 'epex' | 'n2ex' | 'custom'
-export type RiskChoice = '1in10' | '1in20' | 'balanced' | 'custom'
-export type Margin = 0 | 10 | 20 | 60
-export type CalibChoice = 'jan' | 'dec'
-export const TABS = ['decision', 'accuracy', 'firm', 'timing', 'live'] as const
+type AuctionChoice = 'epex' | 'n2ex' | 'custom'
+type RiskChoice = '1in10' | '1in20' | 'balanced' | 'custom'
+type Margin = 0 | 10 | 20 | 60
+type CalibChoice = 'jan' | 'dec'
+const TABS = ['decision', 'accuracy', 'firm', 'timing', 'live'] as const
 export type Tab = (typeof TABS)[number]
 
 export interface UrlState {
@@ -38,7 +38,7 @@ export const DEFAULTS: UrlState = {
 }
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/
-const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/
+export const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/
 
 const oneOf = <T extends string | number>(v: T | undefined, allowed: readonly T[], fallback: T): T =>
   v !== undefined && allowed.includes(v) ? v : fallback
@@ -56,9 +56,10 @@ export function parseState(search: string): UrlState {
   const p = new URLSearchParams(search)
   const r = Number(p.get('r'))
   const t = p.get('t')
+  const day = p.get('day')
   return {
     tab: oneOf(p.get('tab') as Tab, TABS, DEFAULTS.tab),
-    day: isDay(p.get('day')) ? p.get('day')! : DEFAULTS.day,
+    day: isDay(day) ? day : DEFAULTS.day,
     auction: oneOf(p.get('auction') as AuctionChoice, ['epex', 'n2ex', 'custom'], DEFAULTS.auction),
     t: t && HHMM.test(t) ? t : DEFAULTS.t,
     margin: oneOf(Number(p.get('margin') ?? 0) as Margin, [0, 10, 20, 60], DEFAULTS.margin),
