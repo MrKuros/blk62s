@@ -45,6 +45,7 @@ A receipt panel in the methodology drawer (cutoff, run used, source, data hash, 
 | `scripts/refresh_snapshot.py` | Refetches the Elexon ranges, sanity-checks them and rewrites the snapshot. It is never run at request time. |
 | `scripts/story_numbers.py` | Prints the headline numbers at the app defaults, so they can be checked against the UI and the golden output. |
 | `docs/METHODOLOGY.md` | How the analysis works and why: timeline, data semantics, metrics, validation, limitations. |
+| `docs/research/` | Pre-build investigations: auction timing, Elexon dataset semantics, exploratory January analysis (with runnable scripts) and the final numbers. |
 | `docker-compose.yml` | Local stack: `api` + `web`. |
 | `vercel.json` | Vercel Services config: `web` (Vite) and `api` (FastAPI) on one domain, region `lhr1`. |
 | `.github/workflows/ci.yml` | Lint, type-check, test and build for both apps, with contract drift checks and a Docker build on `main`. |
