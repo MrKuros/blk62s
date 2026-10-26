@@ -6,8 +6,12 @@ export default defineConfig({
   server: {
     proxy: { '/api': 'http://localhost:8000' },
   },
+  preview: {
+    proxy: { '/api': 'http://localhost:8000' },
+  },
   test: {
     environment: 'jsdom',
+    include: ['src/**/*.test.{ts,tsx}'],
     passWithNoTests: true,
   },
 })

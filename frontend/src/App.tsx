@@ -1,7 +1,7 @@
 import { MethodologyDrawer } from './components/MethodologyDrawer'
 import { DegradedBanner, ErrorState, Skeleton } from './components/States'
 import { panelId, tabId, Tabs } from './components/Tabs'
-import { ControlBar, Masthead } from './components/TopBar'
+import { type BarMeta, ControlBar, Masthead } from './components/TopBar'
 import { type AnalysisParams, useMeta } from './hooks/queries'
 import { cutoffParam, DEFAULTS, riskR, type Tab, useUrlState } from './hooks/useUrlState'
 import { pLabel } from './lib/format'
@@ -11,6 +11,16 @@ import { Firm } from './sections/Firm'
 import { Live } from './sections/Live'
 import { Timing } from './sections/Timing'
 import './styles/app.css'
+
+// Mirrors the API's meta so the bar renders at its final size before meta lands (no layout shift).
+const PENDING_BAR: BarMeta = {
+  days: [],
+  auctions: [
+    { id: 'epex', label: 'EPEX 09:20', local_time: '09:20' },
+    { id: 'n2ex', label: 'N2EX 09:50', local_time: '09:50' },
+  ],
+  margins: [0, 10, 20, 60],
+}
 
 export default function App() {
   const [state, set] = useUrlState()
@@ -60,12 +70,14 @@ export default function App() {
         Skip to content
       </a>
       <Masthead meta={m} apiDown={meta.isError && !m} live={state.tab === 'live'} set={set} />
-      {/* Tabs never wait for the API, and the control bar keeps its height, so nothing jumps when data lands. */}
+      {/* Tabs never wait for the API, and the control bar renders inert until meta lands, so nothing jumps. */}
       <div className="sticky">
         {m ? (
           <ControlBar state={state} r={r} meta={m} day={day} set={set} />
         ) : (
-          <div className="controlbar controlbar-pending" aria-hidden="true" />
+          <div className="controlbar-pending" inert>
+            <ControlBar state={state} r={r} meta={PENDING_BAR} day={day} set={set} />
+          </div>
         )}
         <Tabs tabs={tabs} value={state.tab} onChange={(tab) => set({ tab })} />
       </div>

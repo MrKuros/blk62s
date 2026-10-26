@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "typecheck": "tsc -b",
     "test": "vitest",
-    "gen:api": "openapi-typescript src/lib/openapi.json -o src/lib/api-types.ts"
+    "gen:api": "openapi-typescript src/lib/openapi.json -o src/lib/api-types.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.5",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.1",
     "@types/d3-scale": "^4.0.9",
     "@types/d3-shape": "^3.2.0",
     "@types/react": "^19.3.0",

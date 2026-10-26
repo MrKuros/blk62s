@@ -2,11 +2,13 @@ import { type ReactNode, useState } from 'react'
 import type { UrlState } from '../hooks/useUrlState'
 import type { Meta } from '../lib/api'
 import { riskFromCosts } from '../lib/firm'
-import { addDays, dayLabel, riskLabel } from '../lib/format'
+import { addDays, dayLabel, pLabel, riskLabel } from '../lib/format'
 import { DayPicker } from './DayPicker'
 import { SourceBadge } from './SourceBadge'
 
 type Set = (patch: Partial<UrlState>) => void
+/** All the control bar reads from meta, so a placeholder can stand in before it loads. */
+export type BarMeta = Pick<Meta, 'days' | 'auctions' | 'margins'>
 
 const Label = ({ text, hint }: { text: string; hint: string }) => (
   <span className="control-label" title={`${text}: ${hint}`}>
@@ -70,7 +72,7 @@ function GateTime({ t, set }: { t: string; set: Set }) {
   )
 }
 
-function AuctionControl({ state, meta, set }: { state: UrlState; meta: Meta; set: Set }) {
+function AuctionControl({ state, meta, set }: { state: UrlState; meta: BarMeta; set: Set }) {
   const options = [
     ...meta.auctions.map((a) => ({ value: a.id, label: a.label, title: a.id === 'n2ex' ? N2EX_NOTE : undefined })),
     { value: 'custom' as const, label: 'Custom' },
@@ -86,7 +88,7 @@ function AuctionControl({ state, meta, set }: { state: UrlState; meta: Meta; set
   )
 }
 
-function RiskControl({ state, r, meta, set }: { state: UrlState; r: number; meta: Meta; set: Set }) {
+function RiskControl({ state, r, meta, set }: { state: UrlState; r: number; meta: BarMeta; set: Set }) {
   // Costs only derive r; they are inputs to a calculator, not view state, so they stay out of the URL.
   const [short, setShort] = useState(90)
   const [surplus, setSurplus] = useState(10)
@@ -200,10 +202,26 @@ export function Masthead({ meta, apiDown, live, set }: { meta: Meta | undefined;
 /** The three inputs every view answers to: which day, which gate, how much risk. */
 const tomorrowUk = () => addDays(new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/London' }), 1)
 
-export function ControlBar({ state, r, meta, day, set }: { state: UrlState; r: number; meta: Meta; day: string; set: Set }) {
+export function ControlBar({ state, r, meta, day, set }: { state: UrlState; r: number; meta: BarMeta; day: string; set: Set }) {
+  // Phones get a one-line summary that expands to the full controls; wider screens ignore it (CSS).
+  const [open, setOpen] = useState(false)
+  const gate = state.auction === 'custom' ? `Custom ${state.t}` : meta.auctions.find((a) => a.id === state.auction)?.label
+  const dayText = state.tab === 'live' ? 'Tomorrow' : dayLabel(day)
   return (
-    <div className="controlbar" role="group" aria-label="Decision inputs">
-      <div className="controlbar-inner">
+    <div className="controlbar" role="group" aria-label="Decision inputs" data-open={open}>
+      <button
+        type="button"
+        className="cb-toggle"
+        aria-expanded={open}
+        aria-controls="controlbar-inner"
+        onClick={() => setOpen(!open)}
+      >
+        <span className="cb-summary num">
+          {dayText} · {gate} · {pLabel(r)}
+        </span>
+        <span className="cb-action">{open ? 'Done' : 'Change'}</span>
+      </button>
+      <div className="controlbar-inner" id="controlbar-inner">
         <div className="control">
           <Label text="Delivery day" hint="the day the power is delivered" />
           {/* The live view is always tomorrow; a pilot day picker there would put two delivery days on screen. */}

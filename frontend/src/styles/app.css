@@ -207,6 +207,11 @@ strong {
   align-items: center;
 }
 
+/* Room for the longest state, so the badge doesn't push its neighbours when the source check lands. */
+.brand-end .badge {
+  min-width: 240px;
+}
+
 /* ---------------------------------------------------------------- sticky control bar + tabs */
 
 .sticky {
@@ -216,6 +221,10 @@ strong {
   background: rgb(255 255 255 / 0.94);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(8px);
+}
+
+.cb-toggle {
+  display: none;
 }
 
 .controlbar-inner {
@@ -484,7 +493,7 @@ strong {
 }
 
 .controlbar-pending {
-  height: 73px;
+  opacity: 0.6;
 }
 
 .dp-pin {
@@ -1544,6 +1553,11 @@ strong {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  /* An odd count would leave the last card alone in a 2-col grid: stack them instead. */
+  .kpis:has(> .kpi:last-child:nth-child(odd)) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .kpi {
     padding: 12px;
     border-top: 1px solid var(--border);
@@ -1592,6 +1606,16 @@ strong {
 }
 
 @media (max-width: 600px) {
+  /* The badge row always wraps on phones; give it the full line so its width never moves anything. */
+  .brand-end {
+    flex-basis: 100%;
+    justify-content: space-between;
+  }
+
+  .brand-end .badge {
+    min-width: 0;
+  }
+
   .tab-long {
     display: none;
   }
@@ -1605,8 +1629,47 @@ strong {
     justify-content: space-between;
   }
 
-  .controlbar-pending {
-    height: 230px;
+  /* One-line summary; the full controls open beneath it on tap. */
+  .cb-toggle {
+    display: flex;
+    gap: var(--space-1);
+    align-items: center;
+    justify-content: space-between;
+    width: calc(100% - 2 * var(--gutter));
+    min-height: 44px;
+    margin: 8px var(--gutter);
+    padding: 0 12px;
+    font: inherit;
+    font-size: var(--t-sm);
+    color: var(--ink);
+    text-align: left;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+
+  .cb-summary {
+    min-width: 0;
+    overflow: hidden;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cb-action {
+    flex: none;
+    font-size: var(--t-xs);
+    font-weight: 600;
+    color: var(--brand-ink);
+  }
+
+  .controlbar[data-open='false'] .controlbar-inner {
+    display: none;
+  }
+
+  .controlbar-inner {
+    padding-top: 0;
   }
 }
 

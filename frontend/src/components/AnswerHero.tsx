@@ -114,7 +114,7 @@ export function AnswerHero({ r, forecastAvg, forecastPeak, firm, run, trainDays:
             </dd>
           </div>
           <div>
-            <dt>Correction</dt>
+            <dt>{stale ? 'Status' : 'Correction'}</dt>
             <dd className="fact-text">
               {stale ? (
                 <>

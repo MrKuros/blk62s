@@ -1,6 +1,7 @@
 # private working notes / source docs
 handoff/
 assignment_docs/
+video/
 
 # python
 __pycache__/
@@ -19,3 +20,7 @@ dist/
 raw/
 .DS_Store
 .vercel
+
+# playwright
+test-results/
+playwright-report/

@@ -95,9 +95,11 @@ function whyNotes(d: ReplayData, meta: Meta): Note[] {
       title: 'Data fault, not weather',
       text: 'Visible at the gate: the forecast had stopped updating. NESO later confirmed an IT ingestion failure on 27–28 Jan.',
     })
-  // The frozen-feed warning is in the hero itself; the rail keeps the other reasons.
-  for (const s of [d.signal, ...d.watch]) {
-    if (s?.id === 'run_jump') continue
+  // The frozen-feed and warm-up notes are in the hero itself; the rail keeps the other reasons.
+  const sigs = [d.signal, ...d.watch]
+  const stale = staleFeed(sigs)
+  for (const s of sigs) {
+    if (s?.id === 'run_jump' || (s?.id === 'calibrating' && !stale)) continue
     const t = signalText(s)
     if (t) notes.push({ title: t.title, text: t.text })
   }
