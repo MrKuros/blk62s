@@ -1,5 +1,13 @@
 import { scaleLinear, type ScaleLinear } from 'd3-scale'
-import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react'
+import {
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type PointerEvent,
+  type ReactNode,
+} from 'react'
 import './charts.css'
 
 export type Scale = ScaleLinear<number, number>
@@ -107,9 +115,14 @@ export function ChartFrame({
   const x = useMemo(() => scaleLinear().domain([x0, x1]).range([0, width]), [x0, x1, width])
   const y = useMemo(() => scaleLinear().domain([y0, y1]).range([innerHeight, 0]), [y0, y1, innerHeight])
   // Hover only moves the crosshair and tip; the plot layer (many paths in Replay) re-renders only on new data or size.
-  const layer = useMemo(() => children({ x, y, width, height: innerHeight }), [children, x, y, width, innerHeight])
+  const layer = useMemo(
+    () => children({ x, y, width, height: innerHeight }),
+    [children, x, y, width, innerHeight],
+  )
   const interactive = !!tooltip && snap.length > 0
-  const xt: Tick[] = xTicks ? xTicks(x, width) : x.ticks(Math.max(2, width / 90)).map((v) => ({ value: v, label: String(v) }))
+  const xt: Tick[] = xTicks
+    ? xTicks(x, width)
+    : x.ticks(Math.max(2, width / 90)).map((v) => ({ value: v, label: String(v) }))
   const yt = y.ticks(5).map((v) => ({ value: v, label: yFormat(v) }))
   const at = active == null ? undefined : snap[active]
 
@@ -120,7 +133,9 @@ export function ChartFrame({
   const onKeyDown = (e: KeyboardEvent<SVGSVGElement>) => {
     const last = snap.length - 1
     const cur = active ?? -1
-    const next = { ArrowRight: Math.min(last, cur + 1), ArrowLeft: Math.max(0, cur - 1), Home: 0, End: last }[e.key]
+    const next = { ArrowRight: Math.min(last, cur + 1), ArrowLeft: Math.max(0, cur - 1), Home: 0, End: last }[
+      e.key
+    ]
     if (next !== undefined) {
       e.preventDefault()
       setActive(next)
@@ -184,7 +199,8 @@ export function ChartFrame({
                 : {
                     left: tipLeft,
                     top: M.top,
-                    transform: tipLeft > outerWidth / 2 ? 'translateX(calc(-100% - 12px))' : 'translateX(12px)',
+                    transform:
+                      tipLeft > outerWidth / 2 ? 'translateX(calc(-100% - 12px))' : 'translateX(12px)',
                   }
             }
           >
@@ -199,7 +215,15 @@ export function ChartFrame({
 }
 
 /** Legend key that mirrors the mark: a stroke for lines, a block for areas. Uses the series' own class. */
-export function Key({ mark, className, label }: { mark: 'line' | 'area' | 'dot'; className: string; label: string }) {
+export function Key({
+  mark,
+  className,
+  label,
+}: {
+  mark: 'line' | 'area' | 'dot'
+  className: string
+  label: string
+}) {
   return (
     <span className="legend-item">
       <svg width={18} height={10} aria-hidden="true">

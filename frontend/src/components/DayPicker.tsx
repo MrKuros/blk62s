@@ -17,7 +17,15 @@ const close = (el: HTMLDetailsElement | null, refocus: boolean) => {
 
 /** Prev/next plus a calendar popover of the pilot's delivery days, with the notable days marked. Escape or a click
  * outside closes it; arrows move a day, up/down a week; focus returns to the trigger after a pick. */
-export function DayPicker({ days, value, onChange }: { days: string[]; value: string; onChange: (d: string) => void }) {
+export function DayPicker({
+  days,
+  value,
+  onChange,
+}: {
+  days: string[]
+  value: string
+  onChange: (d: string) => void
+}) {
   const ref = useRef<HTMLDetailsElement>(null)
   const i = days.indexOf(value)
   const pick = (d: string) => {
@@ -46,7 +54,14 @@ export function DayPicker({ days, value, onChange }: { days: string[]; value: st
     const at = buttons.indexOf(document.activeElement as HTMLButtonElement)
     if (at === -1) return
     const step: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 7, ArrowUp: -7 }
-    const target = e.key === 'Home' ? 0 : e.key === 'End' ? buttons.length - 1 : step[e.key] === undefined ? null : at + step[e.key]!
+    const target =
+      e.key === 'Home'
+        ? 0
+        : e.key === 'End'
+          ? buttons.length - 1
+          : step[e.key] === undefined
+            ? null
+            : at + step[e.key]!
     if (target == null) return
     e.preventDefault()
     buttons[Math.min(buttons.length - 1, Math.max(0, target))]?.focus()
@@ -70,7 +85,8 @@ export function DayPicker({ days, value, onChange }: { days: string[]; value: st
         ref={ref}
         onToggle={(e) => {
           // Opening moves focus to the selected day, so arrow keys work at once.
-          if (e.currentTarget.open) e.currentTarget.querySelector<HTMLButtonElement>('.dp-day[tabindex="0"]')?.focus()
+          if (e.currentTarget.open)
+            e.currentTarget.querySelector<HTMLButtonElement>('.dp-day[tabindex="0"]')?.focus()
         }}
       >
         <summary className="dp-summary" aria-label={`Delivery day ${dayLabel(value)}. Choose another`}>
@@ -108,7 +124,12 @@ export function DayPicker({ days, value, onChange }: { days: string[]; value: st
           <ul className="dp-showcase">
             {SHOWCASE.map((s) => (
               <li key={s.day}>
-                <button type="button" className="dp-show" aria-pressed={s.day === value} onClick={() => pick(s.day)}>
+                <button
+                  type="button"
+                  className="dp-show"
+                  aria-pressed={s.day === value}
+                  onClick={() => pick(s.day)}
+                >
                   <span className="dp-pin" aria-hidden="true" />
                   <span className="dp-show-day">{dayLabel(s.day)}</span>
                   <span className="muted">{s.note}</span>

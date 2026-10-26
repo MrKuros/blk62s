@@ -2,7 +2,8 @@ import type { Meta } from '../lib/api'
 import { ukDateTime, ukDay, ukTime } from '../lib/format'
 
 /** "today 07:25" or "Sun 25 Oct 07:25": a bare clock time next to run times reads as the same day. */
-const when = (at: string) => (ukDay(at) === ukDay(new Date().toISOString()) ? 'today' : ukDay(at)) + ` ${ukTime(at)}`
+const when = (at: string) =>
+  (ukDay(at) === ukDay(new Date().toISOString()) ? 'today' : ukDay(at)) + ` ${ukTime(at)}`
 
 export const SOURCE_TEXT = {
   checking: () => 'Snapshot · checking Elexon…',

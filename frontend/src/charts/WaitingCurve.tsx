@@ -37,15 +37,18 @@ export function WaitingCurve({ slots, gates, gain }: Props) {
   const gateAt = gates.map((g) => ({ g, m: minutes(-1, g.local_time) })).sort((a, b) => a.m - b.m)
   const lastGate = gateAt.at(-1)?.m ?? 2 * DAY
   const firstGate = gateAt[0]
-  const yMax = scaleLinear()
-    .domain([0, Math.max(1000, ...pts.map((p) => p.s.mae.hi))])
-    .nice()
-    .domain()[1] ?? 1000
+  const yMax =
+    scaleLinear()
+      .domain([0, Math.max(1000, ...pts.map((p) => p.s.mae.hi))])
+      .nice()
+      .domain()[1] ?? 1000
   const highlight = new Set(gain ? [gain.from_slot, gain.to_slot] : [])
-  const best = pts.filter((p) => !unavailable(p.s)).reduce<(typeof pts)[number] | undefined>(
-    (b, p) => (!b || p.s.mae.value < b.s.mae.value ? p : b),
-    undefined,
-  )
+  const best = pts
+    .filter((p) => !unavailable(p.s))
+    .reduce<(typeof pts)[number] | undefined>(
+      (b, p) => (!b || p.s.mae.value < b.s.mae.value ? p : b),
+      undefined,
+    )
 
   const tooltip = (i: number) => {
     const p = pts[i]
@@ -54,7 +57,11 @@ export function WaitingCurve({ slots, gates, gain }: Props) {
     return (
       <>
         <div className="chart-tip-title">{slotName(p.s)} run</div>
-        <TipRow className="s-waiting" label={`mean absolute error (${gwRange(mae.lo, mae.hi)})`} value={gw(mae.value)} />
+        <TipRow
+          className="s-waiting"
+          label={`mean absolute error (${gwRange(mae.lo, mae.hi)})`}
+          value={gw(mae.value)}
+        />
         <TipRow label="forecast bias (+ = too high)" value={biasGw(bias)} />
         {unavailable(p.s) && <div className="tip-note">Not available day-ahead</div>}
       </>
@@ -67,7 +74,9 @@ export function WaitingCurve({ slots, gates, gain }: Props) {
   return (
     <ChartFrame
       ariaLabel={`Mean absolute error of each forecast run from D-2 to D-1 on the same delivery hours, with gate closures marked.${
-        best ? ` The best run available day-ahead is ${slotName(best.s)}, with a mean absolute error of ${gw(best.s.mae.value)}.` : ''
+        best
+          ? ` The best run available day-ahead is ${slotName(best.s)}, with a mean absolute error of ${gw(best.s.mae.value)}.`
+          : ''
       }`}
       xDomain={[0, 2 * DAY]}
       yDomain={[0, yMax]}
@@ -84,7 +93,8 @@ export function WaitingCurve({ slots, gates, gain }: Props) {
           {gain && fromSlot && toSlot && (
             <span className="legend-note">
               Waiting from {slotName(fromSlot)} to {slotName(toSlot)} ({GATE_LABEL[gain.auction]}): error{' '}
-              {delta(gain.diff.value)} {gain.diff.value <= 0 ? 'smaller' : 'larger'} (saving 90% range {mwRange(-gain.diff.hi, -gain.diff.lo)})
+              {delta(gain.diff.value)} {gain.diff.value <= 0 ? 'smaller' : 'larger'} (saving 90% range{' '}
+              {mwRange(-gain.diff.hi, -gain.diff.lo)})
             </span>
           )}
         </>
@@ -106,7 +116,12 @@ export function WaitingCurve({ slots, gates, gain }: Props) {
             {/* The two gates sit 30 min apart: one band, one stacked label, so the names never collide. */}
             {firstGate && (
               <>
-                <rect className="gate-band" x={x(firstGate.m)} width={Math.max(2, x(lastGate) - x(firstGate.m))} height={height} />
+                <rect
+                  className="gate-band"
+                  x={x(firstGate.m)}
+                  width={Math.max(2, x(lastGate) - x(firstGate.m))}
+                  height={height}
+                />
                 {gateAt.map(({ g, m }) => (
                   <line key={g.auction} className="gate" x1={x(m)} x2={x(m)} y2={height} />
                 ))}
@@ -125,7 +140,12 @@ export function WaitingCurve({ slots, gates, gain }: Props) {
                 <line className="whisker" x1={x(m)} x2={x(m)} y1={y(s.mae.lo)} y2={y(s.mae.hi)} />
                 <line className="whisker" x1={x(m) - 3} x2={x(m) + 3} y1={y(s.mae.lo)} y2={y(s.mae.lo)} />
                 <line className="whisker" x1={x(m) - 3} x2={x(m) + 3} y1={y(s.mae.hi)} y2={y(s.mae.hi)} />
-                <circle className={`dot s-waiting${highlight.has(s.id) ? ' ring' : ''}`} cx={x(m)} cy={y(s.mae.value)} r={4.5} />
+                <circle
+                  className={`dot s-waiting${highlight.has(s.id) ? ' ring' : ''}`}
+                  cx={x(m)}
+                  cy={y(s.mae.value)}
+                  r={4.5}
+                />
               </g>
             ))}
           </>

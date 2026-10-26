@@ -28,7 +28,9 @@ export function LevelBias({ bins, ceilingMw }: Props) {
     const corr: Range = { lo: over(b.corr_p90), mid: over(b.corr_p50), hi: over(b.corr_p10) }
     return { bin: b, x0: b.lo_mw, x1: b.lo_mw + width, raw, corr }
   })
-  const values = spans.flatMap((s) => [s.raw.lo, s.raw.hi, s.corr.lo, s.corr.hi]).filter((v): v is number => v != null)
+  const values = spans
+    .flatMap((s) => [s.raw.lo, s.raw.hi, s.corr.lo, s.corr.hi])
+    .filter((v): v is number => v != null)
   const yDomain = scaleLinear()
     .domain([Math.min(0, ...values), Math.max(0, ...values)])
     .nice()
@@ -45,8 +47,16 @@ export function LevelBias({ bins, ceilingMw }: Props) {
         <div className="chart-tip-title">
           Forecast {s.bin.label} · {s.bin.n} h
         </div>
-        <TipRow className="s-raw" label={`forecast, middle 80% ${signedGw(s.raw.lo)} to ${signedGw(s.raw.hi)}`} value={signedGw(s.raw.mid)} />
-        <TipRow className="s-corrected" label={`corrected, middle 80% ${signedGw(s.corr.lo)} to ${signedGw(s.corr.hi)}`} value={signedGw(s.corr.mid)} />
+        <TipRow
+          className="s-raw"
+          label={`forecast, middle 80% ${signedGw(s.raw.lo)} to ${signedGw(s.raw.hi)}`}
+          value={signedGw(s.raw.mid)}
+        />
+        <TipRow
+          className="s-corrected"
+          label={`corrected, middle 80% ${signedGw(s.corr.lo)} to ${signedGw(s.corr.hi)}`}
+          value={signedGw(s.corr.mid)}
+        />
       </>
     )
   }
@@ -54,7 +64,9 @@ export function LevelBias({ bins, ceilingMw }: Props) {
   return (
     <ChartFrame
       ariaLabel={`Forecast minus actual wind by forecast level, median and middle 80% of hours per level, before and after correction.${
-        top ? ` For forecasts of ${top.bin.label} the median over-forecast was ${gw(top.raw.mid)} before correction and ${gw(top.corr.mid)} after.` : ''
+        top
+          ? ` For forecasts of ${top.bin.label} the median over-forecast was ${gw(top.raw.mid)} before correction and ${gw(top.corr.mid)} after.`
+          : ''
       } Actual wind never exceeded ${gw(ceilingMw)}.`}
       xDomain={xDomain}
       yDomain={yDomain}
@@ -83,8 +95,23 @@ export function LevelBias({ bins, ceilingMw }: Props) {
           r.lo != null &&
           r.hi != null && (
             <g key={cls}>
-              <rect className={cls} x={cx - w / 2} width={w} y={y(r.hi)} height={Math.max(1, y(r.lo) - y(r.hi))} rx={3} />
-              {r.mid != null && <line className="median" x1={cx - w / 2 - 2} x2={cx + w / 2 + 2} y1={y(r.mid)} y2={y(r.mid)} />}
+              <rect
+                className={cls}
+                x={cx - w / 2}
+                width={w}
+                y={y(r.hi)}
+                height={Math.max(1, y(r.lo) - y(r.hi))}
+                rx={3}
+              />
+              {r.mid != null && (
+                <line
+                  className="median"
+                  x1={cx - w / 2 - 2}
+                  x2={cx + w / 2 + 2}
+                  y1={y(r.mid)}
+                  y2={y(r.mid)}
+                />
+              )}
             </g>
           )
         // Levels wholly above the highest actual hour: the forecast went there, the wind never did.
@@ -94,9 +121,16 @@ export function LevelBias({ bins, ceilingMw }: Props) {
             {unreached.map((s) => (
               <g key={s.bin.label}>
                 <rect className="post-gate" x={x(s.x0)} width={x(s.x1) - x(s.x0)} height={height} />
-                {x(s.x1) - x(s.x0) > 130 && <text className="direct-label" x={(x(s.x0) + x(s.x1)) / 2} y={height - 8} textAnchor="middle">
-                  Actual never reached
-                </text>}
+                {x(s.x1) - x(s.x0) > 130 && (
+                  <text
+                    className="direct-label"
+                    x={(x(s.x0) + x(s.x1)) / 2}
+                    y={height - 8}
+                    textAnchor="middle"
+                  >
+                    Actual never reached
+                  </text>
+                )}
               </g>
             ))}
             <line className="zero" x2={x(xDomain[1])} y1={y(0)} y2={y(0)} />

@@ -20,7 +20,10 @@ export function Reliability({ hour, day, marker, markerLabel }: Props) {
   const lo = Math.min(0.5, Math.floor(Math.min(...all.flatMap((p) => [p.target, p.achieved])) * 10) / 10)
   const snap = hours.map((p) => p.target)
   const nearestTo = (pts: ReliabilityPoint[], t: number) =>
-    pts.reduce<ReliabilityPoint | undefined>((b, p) => (!b || Math.abs(p.target - t) < Math.abs(b.target - t) ? p : b), undefined)
+    pts.reduce<ReliabilityPoint | undefined>(
+      (b, p) => (!b || Math.abs(p.target - t) < Math.abs(b.target - t) ? p : b),
+      undefined,
+    )
   const hourAt = marker == null ? undefined : nearestTo(hours, marker)
   const dayAt = marker == null ? undefined : nearestTo(days, marker)
 
@@ -69,9 +72,20 @@ export function Reliability({ hour, day, marker, markerLabel }: Props) {
             <line className="line s-target" x1={x(lo)} y1={y(lo)} x2={x(1)} y2={y(1)} />
             {hourAt && (
               <>
-                <line className="marker-rule" x1={x(hourAt.target)} x2={x(hourAt.target)} y1={y(lo)} y2={y(1)} />
+                <line
+                  className="marker-rule"
+                  x1={x(hourAt.target)}
+                  x2={x(hourAt.target)}
+                  y1={y(lo)}
+                  y2={y(1)}
+                />
                 {markerLabel && (
-                  <text className="direct-label marker-label" x={x(hourAt.target) - 6} y={y(lo) - 8} textAnchor="end">
+                  <text
+                    className="direct-label marker-label"
+                    x={x(hourAt.target) - 6}
+                    y={y(lo) - 8}
+                    textAnchor="end"
+                  >
                     {markerLabel}
                   </text>
                 )}
@@ -83,7 +97,10 @@ export function Reliability({ hour, day, marker, markerLabel }: Props) {
               { cls: 's-hour', p: hourAt },
               { cls: 's-day', p: dayAt },
             ].map(
-              ({ cls, p }) => p && <circle key={cls} className={`dot ${cls}`} cx={x(p.target)} cy={y(p.achieved)} r={4.5} />,
+              ({ cls, p }) =>
+                p && (
+                  <circle key={cls} className={`dot ${cls}`} cx={x(p.target)} cy={y(p.achieved)} r={4.5} />
+                ),
             )}
           </>
         )

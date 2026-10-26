@@ -105,13 +105,14 @@ interface ParityCase {
     Record<'n_hours' | 'n_days', number>
 }
 const parity = Object.values(
-  import.meta.glob<{ days: FirmDayInput[]; cases: ParityCase[]; payload: { days: FirmDayInput[]; cases: ParityCase[] } }>(
-    './firm_parity.json',
-    {
-      eager: true,
-      import: 'default',
-    },
-  ),
+  import.meta.glob<{
+    days: FirmDayInput[]
+    cases: ParityCase[]
+    payload: { days: FirmDayInput[]; cases: ParityCase[] }
+  }>('./firm_parity.json', {
+    eager: true,
+    import: 'default',
+  }),
 )[0]
 
 describe('parity with the Python implementation', () => {

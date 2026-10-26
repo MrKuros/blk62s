@@ -36,7 +36,12 @@ function Body({ f, meta, r, ex28 }: { f: FirmData; meta: Meta; r: number; ex28: 
           value={pct(c.firmPct)}
           sub={`on average, ${c.nDays} days`}
         />
-        <Kpi label="Hours held" hint={`hours actual beat ${P} wind`} value={pct(c.hourCov)} sub={`target ${pct(target)} · ${c.nHours} hours`} />
+        <Kpi
+          label="Hours held"
+          hint={`hours actual beat ${P} wind`}
+          value={pct(c.hourCov)}
+          sub={`target ${pct(target)} · ${c.nHours} hours`}
+        />
         <Kpi
           label="Whole days held"
           hint="days where every hour held"
@@ -77,7 +82,10 @@ function Body({ f, meta, r, ex28 }: { f: FirmData; meta: Meta; r: number; ex28: 
                     title: 'Warm-up',
                     text: `The first ${calibrating.length} days show the published forecast during warm-up (5 past days needed).`,
                   }
-                : { title: 'No warm-up', text: 'With December history every January day is calibrated from the start.' },
+                : {
+                    title: 'No warm-up',
+                    text: 'With December history every January day is calibrated from the start.',
+                  },
             ]}
           />
         }

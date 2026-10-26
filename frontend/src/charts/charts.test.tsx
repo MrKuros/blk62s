@@ -75,7 +75,8 @@ const gain: components['schemas']['Gain'] = {
   diff: { value: -392, lo: -732, hi: -84 },
 }
 
-const key = (el: Element, k: string) => act(() => void el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })))
+const key = (el: Element, k: string) =>
+  act(() => void el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true })))
 
 describe('charts', () => {
   it('LineBand draws every series and reads values from the keyboard', () => {
@@ -131,7 +132,14 @@ describe('charts', () => {
       day: `2026-01-${String(i + 1).padStart(2, '0')}`,
       value: i === 3 ? null : -1500 + 100 * i,
     }))
-    render(<ErrorCalendar days={days} selected="2026-01-12" pins={['2026-01-08', '2026-01-12', '2026-01-28']} onSelect={onSelect} />)
+    render(
+      <ErrorCalendar
+        days={days}
+        selected="2026-01-12"
+        pins={['2026-01-08', '2026-01-12', '2026-01-28']}
+        onSelect={onSelect}
+      />,
+    )
     const radios = host.querySelectorAll('[role="radio"]')
     expect(radios).toHaveLength(31)
     expect(host.querySelectorAll('.day-pin')).toHaveLength(3)
@@ -150,7 +158,10 @@ describe('charts', () => {
 
   it('Reliability marks the selected target', () => {
     const curve = (k: number) =>
-      Array.from({ length: 50 }, (_, i) => ({ target: 1 - (i + 1) / 100, achieved: Math.max(0, 1 - ((i + 1) / 100) * k) }))
+      Array.from({ length: 50 }, (_, i) => ({
+        target: 1 - (i + 1) / 100,
+        achieved: Math.max(0, 1 - ((i + 1) / 100) * k),
+      }))
     render(<Reliability hour={curve(1.1)} day={curve(2.4)} marker={0.9} />)
     const label = host.querySelector('svg[role="img"]')!.getAttribute('aria-label')
     expect(label).toContain('At a 90% target, 89% of hours and 76% of whole days held.')

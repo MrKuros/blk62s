@@ -17,12 +17,19 @@ export function Tabs({
   const ref = useRef<HTMLDivElement>(null)
   // On a phone the row can scroll: keep the selected tab in view.
   useEffect(() => {
-    ref.current?.querySelector('[aria-selected="true"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+    ref.current
+      ?.querySelector('[aria-selected="true"]')
+      ?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
   }, [value])
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const i = tabs.findIndex((t) => t.id === value)
     const last = tabs.length - 1
-    const next = { ArrowRight: i === last ? 0 : i + 1, ArrowLeft: i === 0 ? last : i - 1, Home: 0, End: last }[e.key]
+    const next = {
+      ArrowRight: i === last ? 0 : i + 1,
+      ArrowLeft: i === 0 ? last : i - 1,
+      Home: 0,
+      End: last,
+    }[e.key]
     const tab = next === undefined ? undefined : tabs[next]
     if (!tab) return
     e.preventDefault()

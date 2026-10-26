@@ -21,7 +21,8 @@ export function useMeta() {
   })
   if (!meta.data) return meta
   if (source.data) return { ...meta, data: { ...meta.data, source: source.data } }
-  if (source.isError) return { ...meta, data: { ...meta.data, source: { state: 'unreachable' as const, checked_at: null } } }
+  if (source.isError)
+    return { ...meta, data: { ...meta.data, source: { state: 'unreachable' as const, checked_at: null } } }
   return meta
 }
 

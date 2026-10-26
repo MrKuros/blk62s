@@ -63,14 +63,14 @@ export function DegradedBanner({ meta }: { meta: UseQueryResult<Meta> }) {
     <div className="banner" role="status">
       {state === 'changed' ? (
         <>
-          <strong>Elexon's data has changed since the snapshot.</strong> Every figure here still comes from the
-          snapshot taken {ukDateTime(m.snapshot_fetched_at)} (hash <code>{m.data_hash}</code>), so all views stay
-          consistent with each other.
+          <strong>Elexon's data has changed since the snapshot.</strong> Every figure here still comes from
+          the snapshot taken {ukDateTime(m.snapshot_fetched_at)} (hash <code>{m.data_hash}</code>), so all
+          views stay consistent with each other.
         </>
       ) : (
         <>
-          <strong>Elexon is unreachable right now.</strong> The January pilot runs on the saved Elexon snapshot taken{' '}
-          {dayLabel(m.snapshot_fetched_at.slice(0, 10))}; only the live preview needs Elexon.
+          <strong>Elexon is unreachable right now.</strong> The January pilot runs on the saved Elexon
+          snapshot taken {dayLabel(m.snapshot_fetched_at.slice(0, 10))}; only the live preview needs Elexon.
         </>
       )}
     </div>

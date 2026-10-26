@@ -17,7 +17,17 @@ export function KpiStrip({ children }: { children: ReactNode }) {
 }
 
 /** One headline figure: official term as the label, a plain one-line hint, the number, then its detail. */
-export function Kpi({ label, hint, value, sub }: { label: string; hint?: string; value: ReactNode; sub?: ReactNode }) {
+export function Kpi({
+  label,
+  hint,
+  value,
+  sub,
+}: {
+  label: string
+  hint?: string
+  value: ReactNode
+  sub?: ReactNode
+}) {
   return (
     <div className="kpi">
       <dt>

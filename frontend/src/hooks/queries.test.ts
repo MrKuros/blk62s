@@ -4,7 +4,13 @@ import { liveTtl } from './queries'
 
 const MIN = 60_000
 const live = (patch: Partial<Live>) =>
-  ({ status: 'ok', target_day: '2026-01-13', cutoff_utc: '2026-01-12T09:20:00Z', gate_passed: false, ...patch }) as Live
+  ({
+    status: 'ok',
+    target_day: '2026-01-13',
+    cutoff_utc: '2026-01-12T09:20:00Z',
+    gate_passed: false,
+    ...patch,
+  }) as Live
 const at = (iso: string) => Date.parse(iso)
 
 describe('liveTtl', () => {

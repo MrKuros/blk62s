@@ -74,14 +74,23 @@ function GateTime({ t, set }: { t: string; set: Set }) {
 
 function AuctionControl({ state, meta, set }: { state: UrlState; meta: BarMeta; set: Set }) {
   const options = [
-    ...meta.auctions.map((a) => ({ value: a.id, label: a.label, title: a.id === 'n2ex' ? N2EX_NOTE : undefined })),
+    ...meta.auctions.map((a) => ({
+      value: a.id,
+      label: a.label,
+      title: a.id === 'n2ex' ? N2EX_NOTE : undefined,
+    })),
     { value: 'custom' as const, label: 'Custom' },
   ]
   return (
     <div className="control">
       <Label text="Gate closure" hint="last moment to submit day-ahead bids, D-1 UK time" />
       <div className="control-row">
-        <Segmented label="Gate closure" value={state.auction} options={options} onChange={(auction) => set({ auction })} />
+        <Segmented
+          label="Gate closure"
+          value={state.auction}
+          options={options}
+          onChange={(auction) => set({ auction })}
+        />
         {state.auction === 'custom' && <GateTime t={state.t} set={set} />}
       </div>
     </div>
@@ -98,9 +107,33 @@ function RiskControl({ state, r, meta, set }: { state: UrlState; r: number; meta
     if (sh > 0 && su > 0) set({ risk: 'custom', r: riskFromCosts(sh, su) })
   }
   const options = [
-    { value: '1in10' as const, label: <>1 in 10 h <span className="seg-sub">P90</span></>, title: 'Accept a shortfall in 1 in 10 hours' },
-    { value: '1in20' as const, label: <>1 in 20 h <span className="seg-sub">P95</span></>, title: 'Accept a shortfall in 1 in 20 hours' },
-    { value: 'balanced' as const, label: <>Balanced <span className="seg-sub">P50</span></>, title: 'Short as often as long: the median outcome' },
+    {
+      value: '1in10' as const,
+      label: (
+        <>
+          1 in 10 h <span className="seg-sub">P90</span>
+        </>
+      ),
+      title: 'Accept a shortfall in 1 in 10 hours',
+    },
+    {
+      value: '1in20' as const,
+      label: (
+        <>
+          1 in 20 h <span className="seg-sub">P95</span>
+        </>
+      ),
+      title: 'Accept a shortfall in 1 in 20 hours',
+    },
+    {
+      value: 'balanced' as const,
+      label: (
+        <>
+          Balanced <span className="seg-sub">P50</span>
+        </>
+      ),
+      title: 'Short as often as long: the median outcome',
+    },
   ]
   return (
     <div className="control">
@@ -112,7 +145,11 @@ function RiskControl({ state, r, meta, set }: { state: UrlState; r: number; meta
           options={options}
           onChange={(risk) => set({ risk })}
         />
-        {state.risk === 'custom' && <span className="chip num">{riskLabel(r)} h · P{100 - r}</span>}
+        {state.risk === 'custom' && (
+          <span className="chip num">
+            {riskLabel(r)} h · P{100 - r}
+          </span>
+        )}
         <details className="advanced">
           <summary>Advanced</summary>
           <div className="popover">
@@ -141,9 +178,9 @@ function RiskControl({ state, r, meta, set }: { state: UrlState; r: number; meta
               <p className="hint">
                 {short > 0 && surplus > 0 ? (
                   <>
-                    Accept being short in <strong className="num">{riskFromCosts(short, surplus)}%</strong> of hours (
-                    {riskLabel(riskFromCosts(short, surplus))}). The cheaper a shortfall is relative to a surplus, the
-                    more wind you can count on.
+                    Accept being short in <strong className="num">{riskFromCosts(short, surplus)}%</strong> of
+                    hours ({riskLabel(riskFromCosts(short, surplus))}). The cheaper a shortfall is relative to
+                    a surplus, the more wind you can count on.
                   </>
                 ) : (
                   'Enter two positive costs.'
@@ -159,8 +196,8 @@ function RiskControl({ state, r, meta, set }: { state: UrlState; r: number; meta
                 onChange={(margin) => set({ margin })}
               />
               <p className="hint">
-                Ignore runs published less than this many minutes before gate closure. Choose 60 min to match the
-                availability times on Elexon's page.
+                Ignore runs published less than this many minutes before gate closure. Choose 60 min to match
+                the availability times on Elexon's page.
               </p>
             </fieldset>
           </div>
@@ -170,10 +207,21 @@ function RiskControl({ state, r, meta, set }: { state: UrlState; r: number; meta
   )
 }
 
-export function Masthead({ meta, apiDown, live, set }: { meta: Meta | undefined; apiDown: boolean; live: boolean; set: Set }) {
+export function Masthead({
+  meta,
+  apiDown,
+  live,
+  set,
+}: {
+  meta: Meta | undefined
+  apiDown: boolean
+  live: boolean
+  set: Set
+}) {
   const openDrawer = (anchor?: string) => {
     set({ drawer: true })
-    if (anchor) requestAnimationFrame(() => document.getElementById(anchor)?.scrollIntoView({ block: 'start' }))
+    if (anchor)
+      requestAnimationFrame(() => document.getElementById(anchor)?.scrollIntoView({ block: 'start' }))
   }
   return (
     <header className="masthead">
@@ -202,10 +250,25 @@ export function Masthead({ meta, apiDown, live, set }: { meta: Meta | undefined;
 /** The three inputs every view answers to: which day, which gate, how much risk. */
 const tomorrowUk = () => addDays(new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/London' }), 1)
 
-export function ControlBar({ state, r, meta, day, set }: { state: UrlState; r: number; meta: BarMeta; day: string; set: Set }) {
+export function ControlBar({
+  state,
+  r,
+  meta,
+  day,
+  set,
+}: {
+  state: UrlState
+  r: number
+  meta: BarMeta
+  day: string
+  set: Set
+}) {
   // Phones get a one-line summary that expands to the full controls; wider screens ignore it (CSS).
   const [open, setOpen] = useState(false)
-  const gate = state.auction === 'custom' ? `Custom ${state.t}` : meta.auctions.find((a) => a.id === state.auction)?.label
+  const gate =
+    state.auction === 'custom'
+      ? `Custom ${state.t}`
+      : meta.auctions.find((a) => a.id === state.auction)?.label
   const dayText = state.tab === 'live' ? 'Tomorrow' : dayLabel(day)
   return (
     <div className="controlbar" role="group" aria-label="Decision inputs" data-open={open}>

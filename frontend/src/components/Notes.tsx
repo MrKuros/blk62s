@@ -6,7 +6,15 @@ export interface Note {
 }
 
 /** At most three short bullets beside or below a chart: the reasons, not a second report. */
-export function Notes({ title = 'Why', items, row = false }: { title?: string; items: Note[]; row?: boolean }) {
+export function Notes({
+  title = 'Why',
+  items,
+  row = false,
+}: {
+  title?: string
+  items: Note[]
+  row?: boolean
+}) {
   if (!items.length) return null
   return (
     <aside className={row ? 'notes notes-row' : 'notes'} aria-label={title}>

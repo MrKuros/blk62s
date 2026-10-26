@@ -70,7 +70,17 @@ const withGaps = (pts: BandPoint[]) =>
     return prev && b.t - prev.t > HOUR ? [{ t: b.t, lo: NaN, hi: NaN }, b] : [b]
   })
 
-export function LineBand({ series, band, shade, yMax, height, ariaLabel, labels, bandLabel = 'Likely range', shadeLabel }: Props) {
+export function LineBand({
+  series,
+  band,
+  shade,
+  yMax,
+  height,
+  ariaLabel,
+  labels,
+  bandLabel = 'Likely range',
+  shadeLabel,
+}: Props) {
   const name = (s: SeriesStyle) => labels?.[s] ?? LABEL[s]
   const ts = [...series.flatMap((s) => s.points.map((p) => p.t)), ...(band ?? []).map((b) => b.t)]
   const ys = [...series.flatMap((s) => s.points.map((p) => p.y ?? 0)), ...(band ?? []).map((b) => b.hi)]
@@ -80,9 +90,9 @@ export function LineBand({ series, band, shade, yMax, height, ariaLabel, labels,
 
   // Earlier and late runs are context; the readout lists the decision run, its correction and the outcome.
   const readable = series.filter((s) => TIP_ORDER.includes(s.style))
-  const snap = [...new Set([...readable.flatMap((s) => s.points.map((p) => p.t)), ...(band ?? []).map((b) => b.t)])].sort(
-    (a, b) => a - b,
-  )
+  const snap = [
+    ...new Set([...readable.flatMap((s) => s.points.map((p) => p.t)), ...(band ?? []).map((b) => b.t)]),
+  ].sort((a, b) => a - b)
   const lookup = readable.map((s) => ({ style: s.style, at: new Map(s.points.map((p) => [p.t, p.y])) }))
   const bandAt = new Map((band ?? []).map((b) => [b.t, b]))
   const present = new Set(series.map((s) => s.style))
@@ -99,7 +109,12 @@ export function LineBand({ series, band, shade, yMax, height, ariaLabel, labels,
         </div>
         {TIP_ORDER.map((style) => {
           const s = lookup.find((l) => l.style === style)
-          return s && s.at.has(t) && <TipRow key={style} className={`s-${style}`} label={name(style)} value={gw(s.at.get(t))} />
+          return (
+            s &&
+            s.at.has(t) && (
+              <TipRow key={style} className={`s-${style}`} label={name(style)} value={gw(s.at.get(t))} />
+            )
+          )
         })}
         {b && <TipRow className="band-stroke" label={bandLabel} value={gwRange(b.lo, b.hi)} />}
       </>

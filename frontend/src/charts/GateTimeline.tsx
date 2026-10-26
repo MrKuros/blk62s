@@ -22,10 +22,18 @@ const H = AXIS + 42
 export const unchanged = (r: TimelineRun) => r.revisionMw != null && Math.abs(r.revisionMw) < 1
 
 const status = (r: TimelineRun) =>
-  r.used ? 'Run used for this decision' : r.tooLate ? 'Published after gate closure: too late' : 'Published before gate closure'
+  r.used
+    ? 'Run used for this decision'
+    : r.tooLate
+      ? 'Published after gate closure: too late'
+      : 'Published before gate closure'
 
 const revisionText = (r: TimelineRun) =>
-  r.revisionMw == null ? null : unchanged(r) ? 'No change from the previous run' : `${signedDelta(r.revisionMw)} average revision vs previous run`
+  r.revisionMw == null
+    ? null
+    : unchanged(r)
+      ? 'No change from the previous run'
+      : `${signedDelta(r.revisionMw)} average revision vs previous run`
 
 const describe = (r: TimelineRun) =>
   `${ukDateTime(new Date(r.publish).toISOString())}. ${status(r)}.${revisionText(r) ? ` ${revisionText(r)}.` : ''}${
@@ -38,12 +46,17 @@ export function GateTimeline({ layout, day, gateLabel, margin }: Props) {
   const [ref, width] = useWidth()
   const svgRef = useRef<SVGSVGElement>(null)
   const [active, setActive] = useState<number | null>(null)
-  const usedIndex = Math.max(0, layout.runs.findIndex((r) => r.used))
+  const usedIndex = Math.max(
+    0,
+    layout.runs.findIndex((r) => r.used),
+  )
   const [focusIndex, setFocusIndex] = useState(usedIndex)
   const roving = Math.min(focusIndex, Math.max(0, layout.runs.length - 1))
   const narrow = width < 560
   const pad = 12
-  const x = scaleLinear().domain([layout.start, layout.end]).range([pad, width - pad])
+  const x = scaleLinear()
+    .domain([layout.start, layout.end])
+    .range([pad, width - pad])
   const used = layout.runs.find((r) => r.used)
   const [d2, d1, d0, end] = layout.dayStarts
   const days = [
@@ -53,7 +66,8 @@ export function GateTimeline({ layout, day, gateLabel, margin }: Props) {
   ]
   const ticks: number[] = []
   const step = narrow ? 12 : 6
-  for (let t = layout.start; t < layout.end; t += HOUR) if (Number(clock(t).slice(0, 2)) % step === 0) ticks.push(t)
+  for (let t = layout.start; t < layout.end; t += HOUR)
+    if (Number(clock(t).slice(0, 2)) % step === 0) ticks.push(t)
   const gx = x(layout.gate)
   const act = active == null ? undefined : layout.runs[active]
   const tipX = act ? x(act.publish) : 0
@@ -91,28 +105,59 @@ export function GateTimeline({ layout, day, gateLabel, margin }: Props) {
           } of them after gate closure at ${gateLabel}.${used ? ` The run used was published ${ukDateTime(new Date(used.publish).toISOString())}.` : ''} Use the arrow keys to move between runs.`}
         >
           {/* delivery day + too-late region */}
-          <rect className="tl2-delivery" x={x(layout.deliveryStart)} y={TOP} width={x(layout.end) - x(layout.deliveryStart)} height={AXIS - TOP} />
+          <rect
+            className="tl2-delivery"
+            x={x(layout.deliveryStart)}
+            y={TOP}
+            width={x(layout.end) - x(layout.deliveryStart)}
+            height={AXIS - TOP}
+          />
           {!narrow && (
             <text className="tl2-band-label" x={x(layout.deliveryStart) + 8} y={TOP + 16}>
               Delivery day
             </text>
           )}
-          <rect className="tl2-late" x={gx} y={TOP} width={Math.max(0, x(layout.deliveryStart) - gx)} height={AXIS - TOP} />
+          <rect
+            className="tl2-late"
+            x={gx}
+            y={TOP}
+            width={Math.max(0, x(layout.deliveryStart) - gx)}
+            height={AXIS - TOP}
+          />
           {/* day boundaries and hour grid */}
           {ticks.map((t) => (
-            <line key={t} className={clock(t) === '00:00' ? 'tl2-day-rule' : 'tl2-hour-rule'} x1={x(t)} x2={x(t)} y1={TOP} y2={AXIS} />
+            <line
+              key={t}
+              className={clock(t) === '00:00' ? 'tl2-day-rule' : 'tl2-hour-rule'}
+              x1={x(t)}
+              x2={x(t)}
+              y1={TOP}
+              y2={AXIS}
+            />
           ))}
           <line className="tl2-base" x1={pad} x2={width - pad} y1={MID} y2={MID} />
           <line className="tl2-axis" x1={pad} x2={width - pad} y1={AXIS} y2={AXIS} />
           {ticks
             .filter((t) => !narrow || clock(t) !== '00:00')
             .map((t) => (
-              <text key={t} className="tl2-tick" x={x(t)} y={AXIS + 14} textAnchor={t === layout.start ? 'start' : 'middle'}>
+              <text
+                key={t}
+                className="tl2-tick"
+                x={x(t)}
+                y={AXIS + 14}
+                textAnchor={t === layout.start ? 'start' : 'middle'}
+              >
                 {clock(t)}
               </text>
             ))}
           {days.map((d, i) => (
-            <text key={d.name} className="tl2-day" x={(x(d.a) + x(d.b)) / 2} y={AXIS + 32} textAnchor="middle">
+            <text
+              key={d.name}
+              className="tl2-day"
+              x={(x(d.a) + x(d.b)) / 2}
+              y={AXIS + 32}
+              textAnchor="middle"
+            >
               <tspan className="tl2-day-name">{d.name}</tspan>
               {!narrow && ` · ${dayLabel(addDays(day, i - 2))}`}
             </text>
@@ -120,11 +165,22 @@ export function GateTimeline({ layout, day, gateLabel, margin }: Props) {
           {/* the run used: how far ahead it reaches into the delivery day */}
           {used && used.leadMin != null && (
             <g className="tl2-lead">
-              <line className="tl2-lead-dash" x1={x(used.publish)} x2={x(layout.deliveryStart)} y1={AXIS - 10} y2={AXIS - 10} />
+              <line
+                className="tl2-lead-dash"
+                x1={x(used.publish)}
+                x2={x(layout.deliveryStart)}
+                y1={AXIS - 10}
+                y2={AXIS - 10}
+              />
               <line x1={x(layout.deliveryStart)} x2={x(layout.end) - 4} y1={AXIS - 10} y2={AXIS - 10} />
               <line x1={x(layout.deliveryStart)} x2={x(layout.deliveryStart)} y1={AXIS - 14} y2={AXIS - 6} />
               <line x1={x(layout.end) - 4} x2={x(layout.end) - 4} y1={AXIS - 14} y2={AXIS - 6} />
-              <text className="tl2-lead-label" x={(x(layout.deliveryStart) + x(layout.end)) / 2} y={AXIS - 16} textAnchor="middle">
+              <text
+                className="tl2-lead-label"
+                x={(x(layout.deliveryStart) + x(layout.end)) / 2}
+                y={AXIS - 16}
+                textAnchor="middle"
+              >
                 {leadRange(used.leadMin, used.leadMax)}
               </text>
             </g>

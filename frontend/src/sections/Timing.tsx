@@ -18,7 +18,10 @@ function Body({ w, auction }: { w: WaitingData; auction: AuctionId }) {
   const gain = w.gains.find((g) => g.auction === gate.auction)
   const gateSlot = byId.get(gate.last_slot_id)!
   const after = w.slots.filter((s) => s.post_gate[gate.auction])
-  const best = after.reduce<typeof gateSlot | undefined>((b, s) => (!b || s.mae.value < b.mae.value ? s : b), undefined)
+  const best = after.reduce<typeof gateSlot | undefined>(
+    (b, s) => (!b || s.mae.value < b.mae.value ? s : b),
+    undefined,
+  )
   const label = gate.auction.toUpperCase()
   const biases = w.slots.map((s) => s.bias)
   const ad = w.auction_diff
@@ -32,12 +35,16 @@ function Body({ w, auction }: { w: WaitingData; auction: AuctionId }) {
       <div className="finding" role="note">
         <p className="finding-kicker">Finding</p>
         <p className="finding-head">
-          {spansZero(ad) ? 'The auction choice barely matters.' : 'The later auction gets a measurably better forecast.'}
+          {spansZero(ad)
+            ? 'The auction choice barely matters.'
+            : 'The later auction gets a measurably better forecast.'}
         </p>
         <p className="finding-body">
-          N2EX ({n2ex?.local_time}) gets the {runOf(n2ex)} run; EPEX ({epex?.local_time}) the {runOf(epex)} run. Over January
-          N2EX's later run {ad.value <= 0 ? 'cut' : 'raised'} mean absolute error by <strong>{delta(ad.value)}</strong> (90%
-          range {ad.value <= 0 ? mwRange(-ad.hi, -ad.lo) : mwRange(ad.lo, ad.hi)}){spansZero(ad) ? ': too small to tell from zero.' : '.'}
+          N2EX ({n2ex?.local_time}) gets the {runOf(n2ex)} run; EPEX ({epex?.local_time}) the {runOf(epex)}{' '}
+          run. Over January N2EX's later run {ad.value <= 0 ? 'cut' : 'raised'} mean absolute error by{' '}
+          <strong>{delta(ad.value)}</strong> (90% range{' '}
+          {ad.value <= 0 ? mwRange(-ad.hi, -ad.lo) : mwRange(ad.lo, ad.hi)})
+          {spansZero(ad) ? ': too small to tell from zero.' : '.'}
         </p>
       </div>
       <KpiStrip>
@@ -49,7 +56,9 @@ function Body({ w, auction }: { w: WaitingData; auction: AuctionId }) {
           sub={
             gain &&
             `${from} → ${slotName(byId.get(gain.to_slot)!)} · 90% range ${
-              gain.diff.value <= 0 ? mwRange(-gain.diff.hi, -gain.diff.lo) : mwRange(gain.diff.lo, gain.diff.hi)
+              gain.diff.value <= 0
+                ? mwRange(-gain.diff.hi, -gain.diff.lo)
+                : mwRange(gain.diff.lo, gain.diff.hi)
             }`
           }
         />
@@ -62,7 +71,9 @@ function Body({ w, auction }: { w: WaitingData; auction: AuctionId }) {
         <Kpi
           label="Error saved by the best later run"
           hint="not available day-ahead"
-          value={best && best.mae.value < gateSlot.mae.value ? delta(gateSlot.mae.value - best.mae.value) : '–'}
+          value={
+            best && best.mae.value < gateSlot.mae.value ? delta(gateSlot.mae.value - best.mae.value) : '–'
+          }
           sub={best ? `${slotName(best)} run, after the gate` : undefined}
         />
       </KpiStrip>

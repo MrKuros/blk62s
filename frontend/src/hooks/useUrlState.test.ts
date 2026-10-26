@@ -20,7 +20,9 @@ describe('parseState / serializeState', () => {
   it('gives defaults for an empty or garbage query', () => {
     expect(parseState('')).toEqual(DEFAULTS)
     expect(
-      parseState('?tab=charts&day=2026-13-45&auction=x&t=25:00&margin=15&risk=often&r=99&calib=nov&ex28=yes&reveal=true'),
+      parseState(
+        '?tab=charts&day=2026-13-45&auction=x&t=25:00&margin=15&risk=often&r=99&calib=nov&ex28=yes&reveal=true',
+      ),
     ).toEqual(DEFAULTS)
   })
 
@@ -59,7 +61,15 @@ describe('parseState / serializeState', () => {
   it('round-trips and keeps the URL short', () => {
     expect(serializeState(DEFAULTS)).toBe('')
     expect(serializeState({ ...DEFAULTS, t: '07:00', r: 3 })).toBe('') // inactive custom values stay out
-    const s: UrlState = { ...DEFAULTS, tab: 'timing', day: '2026-01-08', auction: 'custom', t: '07:00', margin: 10, ex28: true }
+    const s: UrlState = {
+      ...DEFAULTS,
+      tab: 'timing',
+      day: '2026-01-08',
+      auction: 'custom',
+      t: '07:00',
+      margin: 10,
+      ex28: true,
+    }
     expect(parseState(serializeState(s))).toEqual(s)
   })
 })

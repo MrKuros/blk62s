@@ -29,7 +29,8 @@ export default function App() {
   const params: AnalysisParams = { cutoff: cutoffParam(state), margin: state.margin, calib: state.calib }
   const r = riskR(state)
   // A shared link may name a day outside the pilot; fall back rather than request a 422.
-  const day = !m || m.days.includes(state.day) ? state.day : m.days.includes(DEFAULTS.day) ? DEFAULTS.day : m.days[0]!
+  const day =
+    !m || m.days.includes(state.day) ? state.day : m.days.includes(DEFAULTS.day) ? DEFAULTS.day : m.days[0]!
   const tabs: { id: Tab; label: string; short: string }[] = [
     { id: 'decision', label: 'Decision', short: 'Decision' },
     { id: 'accuracy', label: 'Forecast accuracy', short: 'Accuracy' },
@@ -42,10 +43,19 @@ export default function App() {
     switch (tab) {
       case 'decision':
         return (
-          <Decision meta={meta} day={day} params={params} r={r} reveal={state.reveal} onReveal={(reveal) => set({ reveal })} />
+          <Decision
+            meta={meta}
+            day={day}
+            params={params}
+            r={r}
+            reveal={state.reveal}
+            onReveal={(reveal) => set({ reveal })}
+          />
         )
       case 'accuracy':
-        return <Accuracy meta={meta} day={day} params={params} onDay={(d) => set({ day: d, tab: 'decision' })} />
+        return (
+          <Accuracy meta={meta} day={day} params={params} onDay={(d) => set({ day: d, tab: 'decision' })} />
+        )
       case 'firm':
         return (
           <Firm
@@ -84,7 +94,13 @@ export default function App() {
       <main id="main" className="page">
         {m && <DegradedBanner meta={meta} />}
         {m ? (
-          <div key={state.tab} className="tabpanel" role="tabpanel" id={panelId(state.tab)} aria-labelledby={tabId(state.tab)}>
+          <div
+            key={state.tab}
+            className="tabpanel"
+            role="tabpanel"
+            id={panelId(state.tab)}
+            aria-labelledby={tabId(state.tab)}
+          >
             {view(state.tab, m)}
           </div>
         ) : meta.isError ? (
@@ -111,7 +127,14 @@ export default function App() {
           </button>
         </p>
       </footer>
-      <MethodologyDrawer open={state.drawer} onClose={() => set({ drawer: false })} meta={m} day={day} params={params} r={r} />
+      <MethodologyDrawer
+        open={state.drawer}
+        onClose={() => set({ drawer: false })}
+        meta={m}
+        day={day}
+        params={params}
+        r={r}
+      />
     </>
   )
 }

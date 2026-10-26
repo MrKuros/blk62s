@@ -12,7 +12,17 @@ import { biasGw, dayShort, gw, gwRange, overForecast, pct } from '../lib/format'
 
 const ciPct = (lo: number, hi: number) => `${pct(lo)}–${pct(hi)}`
 
-function Body({ a, meta, day, onDay }: { a: AccuracyData; meta: Meta; day: string; onDay: (d: string) => void }) {
+function Body({
+  a,
+  meta,
+  day,
+  onDay,
+}: {
+  a: AccuracyData
+  meta: Meta
+  day: string
+  onDay: (d: string) => void
+}) {
   const meanForecast = mean(a.days.map((d) => d.mean_forecast_mw))
   const top = a.by_level.at(-1)
   const levelHours = a.by_level.reduce((n, b) => n + b.n, 0)

@@ -29,13 +29,15 @@ export const gwh = (v: Num, dp = 1): string => (ok(v) ? `${fixed(v, dp)} GWh` : 
 /** A change between two levels: MW integers under 1 GW, GW at 1 dp above, always signed. */
 export const signedDelta = (v: Num): string => (ok(v) && Math.abs(v) >= 999.5 ? signedGw(v) : signedMw(v))
 /** The same, unsigned, for sentences that carry the direction in words ("error 392 MW smaller"). */
-export const delta = (v: Num): string => (ok(v) && Math.abs(v) >= 999.5 ? gw(Math.abs(v)) : mw(ok(v) ? Math.abs(v) : v))
+export const delta = (v: Num): string =>
+  ok(v) && Math.abs(v) >= 999.5 ? gw(Math.abs(v)) : mw(ok(v) ? Math.abs(v) : v)
 
 /** The one user-facing error convention: forecast minus actual, so + means the forecast was too high. The API sends
  * errors as actual minus forecast; every screen goes through this. */
 export const overForecast = (actualMinusForecast: Num): number | null =>
   ok(actualMinusForecast) ? -actualMinusForecast : null
-export const biasGw = (actualMinusForecast: Num, dp = 1): string => signedGw(overForecast(actualMinusForecast), dp)
+export const biasGw = (actualMinusForecast: Num, dp = 1): string =>
+  signedGw(overForecast(actualMinusForecast), dp)
 
 /** "1.6–2.4 GW" for a CI given in MW; the en dash makes negative ranges read "−2.2 to −1.3 GW". */
 export function gwRange(lo: Num, hi: Num, dp = 1): string {
@@ -60,9 +62,19 @@ const dateTimeFmt = new Intl.DateTimeFormat('en-GB', {
   hour: '2-digit',
   minute: '2-digit',
 })
-const ukDayFmt = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, weekday: 'short', day: 'numeric', month: 'short' })
+const ukDayFmt = new Intl.DateTimeFormat('en-GB', {
+  timeZone: TZ,
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+})
 // Delivery days are calendar dates, not instants: format them in UTC so no zone can shift the date.
-const dayFmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short' })
+const dayFmt = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'UTC',
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+})
 const dayShortFmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', day: 'numeric', month: 'short' })
 
 const instant = (iso: string | null | undefined): Date | null => {

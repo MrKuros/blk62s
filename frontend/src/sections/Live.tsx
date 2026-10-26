@@ -28,9 +28,12 @@ function Body({ d, r }: { d: LiveData; r: number }) {
   const series: Series[] = [{ id: 'raw', style: 'raw', points: points(d.hours.map((h) => h.raw)) }]
   if (q) series.push({ id: 'corrected', style: 'corrected', points: points(corrected) })
   if (firm) series.push({ id: 'firm', style: 'firm', points: points(firm) })
-  const bandPts = q && r < 50
-    ? band(corrected, q, r).flatMap((b, i) => (b.lo == null || b.hi == null ? [] : [{ t: t[i]!, lo: b.lo, hi: b.hi }]))
-    : undefined
+  const bandPts =
+    q && r < 50
+      ? band(corrected, q, r).flatMap((b, i) =>
+          b.lo == null || b.hi == null ? [] : [{ t: t[i]!, lo: b.lo, hi: b.hi }],
+        )
+      : undefined
   const run = d.decision_run
   const cal = d.calibration
   const gate = gateLabel(d.params.cutoff, d.params.cutoff_local)
@@ -61,7 +64,10 @@ function Body({ d, r }: { d: LiveData; r: number }) {
               series={series}
               band={bandPts}
               height={300}
-              labels={{ raw: d.gate_passed ? 'Forecast run used' : 'Latest forecast run', firm: `${pLabel(r)} wind (${r >= 50 ? 'central' : 'count on'})` }}
+              labels={{
+                raw: d.gate_passed ? 'Forecast run used' : 'Latest forecast run',
+                firm: `${pLabel(r)} wind (${r >= 50 ? 'central' : 'count on'})`,
+              }}
               bandLabel={`Likely range (lower edge = ${pLabel(r)})`}
               ariaLabel={`Live wind forecast for ${dayShort(d.target_day)}`}
             />
@@ -71,7 +77,10 @@ function Body({ d, r }: { d: LiveData; r: number }) {
           <Notes
             title="Beyond the January pilot"
             items={[
-              { title: 'Same pipeline, live data', text: 'Elexon WINDFOR and FUELHH as published today, using the last run before gate closure, as in January.' },
+              {
+                title: 'Same pipeline, live data',
+                text: 'Elexon WINDFOR and FUELHH as published today, using the last run before gate closure, as in January.',
+              },
               {
                 title: 'Calibrated on the last 30 days',
                 text: `${cal?.train_window ? `${dayShort(cal.train_window[0])} to ${dayShort(cal.train_window[1])}, ` : ''}not January: seasons and curtailment differ.`,

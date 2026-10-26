@@ -20,7 +20,16 @@ export interface HeroProps {
 }
 
 /** The decision first: how much wind to count on, how far to trust it, and what it rests on. */
-export function AnswerHero({ r, forecastAvg, forecastPeak, firm, run, trainDays: n, stale, gatePassed }: HeroProps) {
+export function AnswerHero({
+  r,
+  forecastAvg,
+  forecastPeak,
+  firm,
+  run,
+  trainDays: n,
+  stale,
+  gatePassed,
+}: HeroProps) {
   const level = firm && mean(firm)
   const holdBack = level != null && forecastAvg != null ? forecastAvg - level : null
   const P = pLabel(r)
@@ -44,8 +53,8 @@ export function AnswerHero({ r, forecastAvg, forecastPeak, firm, run, trainDays:
               <p className="hero-sub">
                 {median ? (
                   <>
-                    <strong>{P} (balanced)</strong>: actual was above this in half the hours on past days, so short as often
-                    as long.
+                    <strong>{P} (balanced)</strong>: actual was above this in half the hours on past days, so
+                    short as often as long.
                   </>
                 ) : (
                   <>
@@ -65,17 +74,18 @@ export function AnswerHero({ r, forecastAvg, forecastPeak, firm, run, trainDays:
               {!stale && (
                 <p className="hero-note" role="status">
                   <strong>Warm-up.</strong>{' '}
-                  {n === 0 ? 'No past days were' : `Only ${n} past ${n === 1 ? 'day was' : 'days were'}`} known at the gate (5
-                  needed), so this shows the published forecast with no correction or likely range.
+                  {n === 0 ? 'No past days were' : `Only ${n} past ${n === 1 ? 'day was' : 'days were'}`}{' '}
+                  known at the gate (5 needed), so this shows the published forecast with no correction or
+                  likely range.
                 </p>
               )}
             </>
           )}
           {stale && (
             <p className="hero-warn" role="alert">
-              <strong>Forecast feed frozen since {ukDateTime(stale.since)}.</strong> The run used repeats the {stale.runs - 1}{' '}
-              runs before it exactly, so NESO's forecast had stopped updating. Treat every figure here as stale and check
-              for a data fault before trading on it.
+              <strong>Forecast feed frozen since {ukDateTime(stale.since)}.</strong> The run used repeats the{' '}
+              {stale.runs - 1} runs before it exactly, so NESO's forecast had stopped updating. Treat every
+              figure here as stale and check for a data fault before trading on it.
             </p>
           )}
         </div>

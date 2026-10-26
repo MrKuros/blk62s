@@ -12,7 +12,12 @@ const hours = ['2026-01-12T00:00:00Z', '2026-01-12T01:00:00Z', '2026-01-12T02:00
 const replay = (margin = 0) =>
   ({
     params: { cutoff: 'epex', cutoff_local: '09:20', margin, calib: 'jan', day: '2026-01-12' },
-    decision_run: { publish_time: '2026-01-11T07:30:00Z', hours_ahead_min: 16.5, hours_ahead_max: 18.5, n_hours: 3 },
+    decision_run: {
+      publish_time: '2026-01-11T07:30:00Z',
+      hours_ahead_min: 16.5,
+      hours_ahead_max: 18.5,
+      n_hours: 3,
+    },
     hours,
     // Out of order on purpose: revisions are against the previous run by publish time.
     runs: [

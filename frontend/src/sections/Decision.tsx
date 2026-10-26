@@ -26,7 +26,11 @@ function chartSeries(d: ReplayData, firm: (number | null)[] | null, r: number, r
   const series: Series[] = reveal
     ? []
     : [
-        ...before.map((run): Series => ({ id: run.publish_time, style: 'faint', points: points(run.values) })),
+        ...before.map((run): Series => ({
+          id: run.publish_time,
+          style: 'faint',
+          points: points(run.values),
+        })),
         ...late.map((run): Series => ({ id: run.publish_time, style: 'late', points: points(run.values) })),
       ]
   series.push({ id: 'raw', style: 'raw', points: points(d.hours.map((h) => h.raw)) })
@@ -44,7 +48,9 @@ function chartSeries(d: ReplayData, firm: (number | null)[] | null, r: number, r
       : undefined
   // Shortfall is actual below the plan: the firm level when there is one, else the published forecast.
   const plan = firm ?? d.hours.map((h) => h.raw)
-  const shade = reveal ? d.hours.map((h, i) => ({ t: t[i]!, forecast: plan[i] ?? null, actual: h.actual })) : undefined
+  const shade = reveal
+    ? d.hours.map((h, i) => ({ t: t[i]!, forecast: plan[i] ?? null, actual: h.actual }))
+    : undefined
   return { series, band: bandPts, shade, nBefore: before.length, nLate: late.length }
 }
 
@@ -64,8 +70,10 @@ function Outcome({ d, firm, r }: { d: ReplayData; firm: (number | null)[] | null
       <div>
         <dt>Actual generation</dt>
         <dd>
-          <Quantity value={gw(mean(actual))} /> <span className="muted">avg</span> <span className="sep">·</span>{' '}
-          <Quantity value={gw(Math.max(...actual.map((a) => a ?? -Infinity)))} /> <span className="muted">peak</span>
+          <Quantity value={gw(mean(actual))} /> <span className="muted">avg</span>{' '}
+          <span className="sep">·</span>{' '}
+          <Quantity value={gw(Math.max(...actual.map((a) => a ?? -Infinity)))} />{' '}
+          <span className="muted">peak</span>
         </dd>
       </div>
       {over != null && (
@@ -142,7 +150,13 @@ export function Decision({ meta, day, params, r, reveal, onReveal }: Props) {
       <Await query={replay} height={720}>
         {(d) => {
           const q = d.calibration.q
-          const firm = q ? firmHours(d.hours.map((h) => h.corrected), q, r) : null
+          const firm = q
+            ? firmHours(
+                d.hours.map((h) => h.corrected),
+                q,
+                r,
+              )
+            : null
           const run = d.decision_run
           const { series, band: bandPts, shade, nBefore, nLate } = chartSeries(d, firm, r, reveal)
           const gate = gateLabel(d.params.cutoff, d.params.cutoff_local)
@@ -159,14 +173,23 @@ export function Decision({ meta, day, params, r, reveal, onReveal }: Props) {
                 stale={staleFeed([d.signal, ...d.watch])}
               />
               <Panel
-                title={run ? `Forecast run used: ${ukTime(run.publish_time)}` : 'No forecast run was published before this gate'}
+                title={
+                  run
+                    ? `Forecast run used: ${ukTime(run.publish_time)}`
+                    : 'No forecast run was published before this gate'
+                }
                 hint={
                   reveal
                     ? 'Hourly GB wind, GW, UK time. Amber: hours where actual fell short of the plan.'
                     : `Hourly GB wind, GW, UK time.${nBefore ? ` The ${nBefore} runs before it shown faintly` : ''}${nLate ? `; ${nLate} dashed runs came after the gate` : ''}.`
                 }
                 actions={
-                  <button type="button" className={reveal ? 'btn btn-ghost' : 'btn'} aria-pressed={reveal} onClick={() => onReveal(!reveal)}>
+                  <button
+                    type="button"
+                    className={reveal ? 'btn btn-ghost' : 'btn'}
+                    aria-pressed={reveal}
+                    onClick={() => onReveal(!reveal)}
+                  >
                     {reveal ? 'Hide what happened' : 'Show what happened'}
                   </button>
                 }

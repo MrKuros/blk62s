@@ -17,7 +17,8 @@ const test = base.extend<{ consoleErrors: void }>({
 })
 
 const hero = (page: Page) => page.locator('.hero')
-const runUsed = (page: Page) => hero(page).locator('.hero-facts > div', { hasText: 'Forecast run' }).locator('dd')
+const runUsed = (page: Page) =>
+  hero(page).locator('.hero-facts > div', { hasText: 'Forecast run' }).locator('dd')
 
 test('decision for 12 Jan: count on 12.5 GW, run 07:30', async ({ page }) => {
   await page.goto('/?day=2026-01-12')
@@ -65,7 +66,9 @@ test('each tab renders its heading', async ({ page }) => {
   // Live depends on Elexon: accept either a forecast or the unavailable state.
   await page.getByRole('tab', { name: /Tomorrow|Live/ }).click()
   await expect(page.locator('.tabpanel h2').first()).toContainText('Tomorrow')
-  await expect(page.locator('#hero-title, .unavailable, .error-state').first()).toBeVisible({ timeout: 30_000 })
+  await expect(page.locator('#hero-title, .unavailable, .error-state').first()).toBeVisible({
+    timeout: 30_000,
+  })
 })
 
 test('28 Jan warns that the forecast feed froze', async ({ page }) => {

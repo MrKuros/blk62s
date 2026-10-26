@@ -14,7 +14,7 @@
   font-family: 'Plex Sans Fallback';
   font-weight: 500;
   src: local('Arial'), local('ArialMT'), local('Liberation Sans');
-  size-adjust: 102.10%;
+  size-adjust: 102.1%;
   ascent-override: 100.39%;
   descent-override: 26.93%;
   line-gap-override: 0%;
@@ -23,7 +23,8 @@
 @font-face {
   font-family: 'Plex Sans Fallback';
   font-weight: 600;
-  src: local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('LiberationSans-Bold');
+  src:
+    local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'), local('LiberationSans-Bold');
   size-adjust: 97.29%;
   ascent-override: 105.36%;
   descent-override: 28.27%;

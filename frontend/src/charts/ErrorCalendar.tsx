@@ -16,7 +16,8 @@ interface Props {
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-const describe = (v: number | null) => (v == null ? 'no data' : `forecast too ${v > 0 ? 'high' : 'low'} by ${gw(Math.abs(v))}`)
+const describe = (v: number | null) =>
+  v == null ? 'no data' : `forecast too ${v > 0 ? 'high' : 'low'} by ${gw(Math.abs(v))}`
 
 /** Monday-first weekday index of a delivery day. */
 const weekday = (day: string) => (new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7
@@ -62,7 +63,12 @@ export function ErrorCalendar({ days, selected, pins, onSelect }: Props) {
           <span key={w}>{w}</span>
         ))}
       </div>
-      <div className="calendar" role="radiogroup" aria-label="Delivery day, shaded by forecast error" onKeyDown={onKeyDown}>
+      <div
+        className="calendar"
+        role="radiogroup"
+        aria-label="Delivery day, shaded by forecast error"
+        onKeyDown={onKeyDown}
+      >
         {Array.from({ length: lead }, (_, i) => (
           <span key={`pad-${i}`} aria-hidden="true" />
         ))}
@@ -87,7 +93,9 @@ export function ErrorCalendar({ days, selected, pins, onSelect }: Props) {
                 {first ? dayShort(d.day) : Number(d.day.slice(8))}
                 {pinned && <span className="day-pin-dot" aria-hidden="true" />}
               </span>
-              <span className="day-v num">{d.value == null ? '–' : signedGw(d.value).replace(' GW', '')}</span>
+              <span className="day-v num">
+                {d.value == null ? '–' : signedGw(d.value).replace(' GW', '')}
+              </span>
             </button>
           )
         })}
