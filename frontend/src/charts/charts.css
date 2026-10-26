@@ -1,0 +1,355 @@
+.chart {
+  position: relative;
+}
+
+.chart-ylabel {
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--subtext);
+}
+
+.chart-body {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  /* The svg's pixel width must not become the column's min-content width, or the chart can never shrink. */
+  contain: inline-size;
+}
+
+.chart svg {
+  overflow: visible;
+  touch-action: pan-y;
+}
+
+.axis text,
+.direct-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  fill: var(--axis);
+}
+
+.direct-label {
+  font-family: var(--font-sans);
+  fill: var(--subtext);
+  /* A halo keeps labels legible where they cross lines. */
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.grid line {
+  stroke: var(--grid);
+  shape-rendering: crispEdges;
+}
+
+.axis-line,
+.zero {
+  stroke: var(--axis-line);
+  shape-rendering: crispEdges;
+}
+
+.crosshair {
+  stroke: var(--axis);
+  pointer-events: none;
+}
+
+/* ---- tooltip + legend (HTML) */
+
+.chart-tip {
+  position: absolute;
+  z-index: 1;
+  padding: var(--space-1) 12px;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--ink) 8%, transparent);
+  max-width: calc(100% - 24px);
+}
+
+.chart-tip-docked {
+  max-width: none;
+  white-space: normal;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.chart-tip-title {
+  margin-bottom: 4px;
+  color: var(--subtext);
+}
+
+.tip-row {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.tip-row .num {
+  font-weight: 600;
+}
+
+.tip-note {
+  margin-top: 4px;
+  color: var(--subtext);
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--space-2);
+  margin-top: var(--space-1);
+  font-size: 12px;
+  color: var(--subtext);
+}
+
+.legend-item {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ---- series */
+
+.line,
+.chart-legend line,
+.tip-row line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.s-raw {
+  stroke: var(--forecast);
+  stroke-width: 1.25;
+}
+
+.s-corrected {
+  stroke: var(--brand);
+  stroke-width: 2;
+}
+
+.s-faint {
+  stroke: var(--axis);
+  stroke-width: 1;
+  stroke-opacity: 0.25;
+}
+
+.s-late {
+  stroke: var(--subtext);
+  stroke-width: 1.25;
+  stroke-dasharray: 4 3;
+}
+
+.s-actual {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.band {
+  fill: var(--band);
+}
+
+.band-stroke {
+  stroke: color-mix(in srgb, var(--brand) 30%, transparent);
+  stroke-width: 6;
+}
+
+.shade-short {
+  fill: var(--short);
+}
+
+.shade-surplus {
+  fill: var(--surplus);
+}
+
+/* Reliability */
+.s-hour {
+  stroke: var(--brand);
+  stroke-width: 2;
+}
+
+.s-day {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.s-target {
+  stroke: var(--axis);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.marker-rule {
+  stroke: var(--axis-line);
+}
+
+.dot {
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.dot.s-hour,
+.dot.s-waiting {
+  fill: var(--brand);
+}
+
+.dot.s-day {
+  fill: var(--ink);
+}
+
+/* LevelBias */
+.bar-raw {
+  fill: color-mix(in srgb, var(--forecast) 35%, transparent);
+}
+
+.bar-corrected {
+  fill: color-mix(in srgb, var(--brand) 35%, transparent);
+}
+
+.median {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.ceiling,
+.gate {
+  stroke: var(--subtext);
+  stroke-width: 1;
+}
+
+.ceiling {
+  stroke-dasharray: 4 3;
+}
+
+/* WaitingCurve */
+.s-waiting-line {
+  stroke: var(--brand);
+  stroke-width: 1;
+  stroke-opacity: 0.5;
+}
+
+.s-waiting {
+  stroke: var(--brand);
+  stroke-width: 2;
+}
+
+.whisker {
+  stroke: var(--axis);
+}
+
+.dot.ring {
+  stroke: var(--ink);
+}
+
+.faded {
+  opacity: 0.45;
+}
+
+.post-gate {
+  fill: color-mix(in srgb, var(--axis) 8%, transparent);
+}
+
+/* ---- reveal: fade the outcome in, unless motion is reduced */
+
+@media (prefers-reduced-motion: no-preference) {
+  .reveal {
+    animation: chart-reveal 400ms ease-out;
+  }
+}
+
+@keyframes chart-reveal {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---- DayStrip */
+
+/* Ramp ends (blue-400, red-400) keep ink text ≥ 5:1 on every cell; the legend uses the same variables. */
+.daystrip-wrap {
+  --ramp-neutral: #eceae4;
+  --ramp-under: #60a5fa;
+  --ramp-over: #f87171;
+}
+
+.daystrip {
+  display: grid;
+  grid-template-columns: repeat(31, minmax(0, 1fr));
+  gap: 2px;
+}
+
+@media (max-width: 640px) {
+  .daystrip {
+    grid-template-columns: repeat(16, minmax(0, 1fr));
+  }
+}
+
+.day {
+  position: relative;
+  height: 36px;
+  min-width: 0;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  border: 0;
+  border-radius: 4px;
+}
+
+.day[aria-checked='true'] {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.day:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.day-pin::after,
+.pin-key {
+  width: 6px;
+  height: 6px;
+  background: var(--ink);
+  border: 1px solid var(--surface);
+  border-radius: 50%;
+}
+
+.day-pin::after {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  content: '';
+}
+
+.pin-key {
+  display: inline-block;
+}
+
+.ramp {
+  display: inline-block;
+  width: 64px;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.ramp-level {
+  background: linear-gradient(90deg, var(--ramp-neutral), var(--ramp-under));
+}
+
+.ramp-error {
+  background: linear-gradient(90deg, var(--ramp-over), var(--ramp-neutral), var(--ramp-under));
+}

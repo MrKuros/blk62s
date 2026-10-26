@@ -1,0 +1,2261 @@
+{
+  "components": {
+    "schemas": {
+      "Accuracy": {
+        "additionalProperties": false,
+        "properties": {
+          "auction_compare": {
+            "$ref": "#/components/schemas/AccuracyAuctionCompare"
+          },
+          "baselines": {
+            "$ref": "#/components/schemas/Baselines"
+          },
+          "bias": {
+            "$ref": "#/components/schemas/CI"
+          },
+          "by_level": {
+            "items": {
+              "$ref": "#/components/schemas/LevelBin"
+            },
+            "title": "By Level",
+            "type": "array"
+          },
+          "ceiling_mw": {
+            "description": "Highest hourly delivered wind in the pilot.",
+            "title": "Ceiling Mw",
+            "type": "number"
+          },
+          "corr": {
+            "title": "Corr",
+            "type": "number"
+          },
+          "corrected": {
+            "$ref": "#/components/schemas/CorrectedEffect"
+          },
+          "data_hash": {
+            "title": "Data Hash",
+            "type": "string"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/AccuracyDay"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "mae": {
+            "$ref": "#/components/schemas/CI"
+          },
+          "n_days": {
+            "title": "N Days",
+            "type": "integer"
+          },
+          "n_hours": {
+            "title": "N Hours",
+            "type": "integer"
+          },
+          "ols": {
+            "$ref": "#/components/schemas/Ols"
+          },
+          "over_share": {
+            "description": "Fraction of hours where the forecast was above actual.",
+            "title": "Over Share",
+            "type": "number"
+          },
+          "params": {
+            "$ref": "#/components/schemas/Params"
+          },
+          "rmse": {
+            "title": "Rmse",
+            "type": "number"
+          },
+          "sensitivity": {
+            "items": {
+              "$ref": "#/components/schemas/SensitivityRow"
+            },
+            "title": "Sensitivity",
+            "type": "array"
+          },
+          "wape": {
+            "$ref": "#/components/schemas/CI",
+            "description": "Sum |error| / sum actual, as a fraction."
+          }
+        },
+        "required": [
+          "data_hash",
+          "params",
+          "n_hours",
+          "n_days",
+          "mae",
+          "bias",
+          "wape",
+          "rmse",
+          "over_share",
+          "corr",
+          "ols",
+          "corrected",
+          "by_level",
+          "ceiling_mw",
+          "days",
+          "sensitivity",
+          "baselines",
+          "auction_compare"
+        ],
+        "title": "Accuracy",
+        "type": "object"
+      },
+      "AccuracyAuctionCompare": {
+        "additionalProperties": false,
+        "properties": {
+          "diff": {
+            "$ref": "#/components/schemas/CI",
+            "description": "n2ex_mae - epex_mae, paired."
+          },
+          "epex_mae": {
+            "title": "Epex Mae",
+            "type": "number"
+          },
+          "n2ex_mae": {
+            "title": "N2Ex Mae",
+            "type": "number"
+          }
+        },
+        "required": [
+          "epex_mae",
+          "n2ex_mae",
+          "diff"
+        ],
+        "title": "AccuracyAuctionCompare",
+        "type": "object"
+      },
+      "AccuracyDay": {
+        "additionalProperties": false,
+        "properties": {
+          "corrected_mae": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "null while calibrating.",
+            "title": "Corrected Mae"
+          },
+          "day": {
+            "format": "date",
+            "title": "Day",
+            "type": "string"
+          },
+          "mean_actual_mw": {
+            "title": "Mean Actual Mw",
+            "type": "number"
+          },
+          "mean_forecast_mw": {
+            "title": "Mean Forecast Mw",
+            "type": "number"
+          },
+          "raw_bias": {
+            "title": "Raw Bias",
+            "type": "number"
+          },
+          "raw_mae": {
+            "title": "Raw Mae",
+            "type": "number"
+          }
+        },
+        "required": [
+          "day",
+          "mean_forecast_mw",
+          "mean_actual_mw",
+          "raw_mae",
+          "raw_bias",
+          "corrected_mae"
+        ],
+        "title": "AccuracyDay",
+        "type": "object"
+      },
+      "Auction": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "enum": [
+              "epex",
+              "n2ex"
+            ],
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "local_time": {
+            "examples": [
+              "09:20"
+            ],
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "Local Time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "local_time"
+        ],
+        "title": "Auction",
+        "type": "object"
+      },
+      "Baselines": {
+        "additionalProperties": false,
+        "properties": {
+          "d2_decision_mae": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Decision run on the same hours as d2_mae.",
+            "title": "D2 Decision Mae"
+          },
+          "d2_mae": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Same-time D-2 run, on the hours it covers; null if it covers none.",
+            "title": "D2 Mae"
+          },
+          "d2_n_hours": {
+            "title": "D2 N Hours",
+            "type": "integer"
+          },
+          "persistence_mae": {
+            "title": "Persistence Mae",
+            "type": "number"
+          }
+        },
+        "required": [
+          "persistence_mae",
+          "d2_mae",
+          "d2_decision_mae",
+          "d2_n_hours"
+        ],
+        "title": "Baselines",
+        "type": "object"
+      },
+      "CI": {
+        "additionalProperties": false,
+        "description": "Point estimate with an approximate 90% moving-block bootstrap interval.",
+        "properties": {
+          "hi": {
+            "title": "Hi",
+            "type": "number"
+          },
+          "lo": {
+            "title": "Lo",
+            "type": "number"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "value",
+          "lo",
+          "hi"
+        ],
+        "title": "CI",
+        "type": "object"
+      },
+      "Calibration": {
+        "additionalProperties": false,
+        "properties": {
+          "a": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Correction intercept: corrected = a + b * raw.",
+            "title": "A"
+          },
+          "b": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "B"
+          },
+          "q": {
+            "anyOf": [
+              {
+                "description": "Walk-forward percentiles of actual/corrected; q[i] is P(i+1), ascending.",
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 99,
+                "minItems": 99,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "calibrating"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "train_days": {
+            "title": "Train Days",
+            "type": "integer"
+          },
+          "train_window": {
+            "anyOf": [
+              {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "format": "date",
+                    "type": "string"
+                  },
+                  {
+                    "format": "date",
+                    "type": "string"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "First and last training day.",
+            "title": "Train Window"
+          }
+        },
+        "required": [
+          "status",
+          "train_days",
+          "train_window",
+          "a",
+          "b",
+          "q"
+        ],
+        "title": "Calibration",
+        "type": "object"
+      },
+      "CorrectedEffect": {
+        "additionalProperties": false,
+        "properties": {
+          "corrected_mae": {
+            "$ref": "#/components/schemas/CI"
+          },
+          "gain": {
+            "$ref": "#/components/schemas/CI",
+            "description": "corrected_mae - raw_mae; negative is an improvement."
+          },
+          "n_days": {
+            "description": "Non-calibrating days; all three CIs are paired on them.",
+            "title": "N Days",
+            "type": "integer"
+          },
+          "raw_mae": {
+            "$ref": "#/components/schemas/CI"
+          }
+        },
+        "required": [
+          "n_days",
+          "raw_mae",
+          "corrected_mae",
+          "gain"
+        ],
+        "title": "CorrectedEffect",
+        "type": "object"
+      },
+      "ErrorBody": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorBody",
+        "type": "object"
+      },
+      "ErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "field"
+        ],
+        "title": "ErrorDetail",
+        "type": "object"
+      },
+      "Firm": {
+        "additionalProperties": false,
+        "properties": {
+          "data_hash": {
+            "title": "Data Hash",
+            "type": "string"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/FirmDay"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "methods": {
+            "items": {
+              "$ref": "#/components/schemas/MethodRow"
+            },
+            "title": "Methods",
+            "type": "array"
+          },
+          "params": {
+            "$ref": "#/components/schemas/Params"
+          }
+        },
+        "required": [
+          "data_hash",
+          "params",
+          "days",
+          "methods"
+        ],
+        "title": "Firm",
+        "type": "object"
+      },
+      "FirmDay": {
+        "additionalProperties": false,
+        "properties": {
+          "actual": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Actual",
+            "type": "array"
+          },
+          "calibrating": {
+            "title": "Calibrating",
+            "type": "boolean"
+          },
+          "corrected": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Corrected",
+            "type": "array"
+          },
+          "day": {
+            "format": "date",
+            "title": "Day",
+            "type": "string"
+          },
+          "q": {
+            "anyOf": [
+              {
+                "description": "Walk-forward percentiles of actual/corrected; q[i] is P(i+1), ascending.",
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 99,
+                "minItems": 99,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q"
+          },
+          "raw": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Raw",
+            "type": "array"
+          }
+        },
+        "required": [
+          "day",
+          "calibrating",
+          "raw",
+          "corrected",
+          "actual",
+          "q"
+        ],
+        "title": "FirmDay",
+        "type": "object"
+      },
+      "Gain": {
+        "additionalProperties": false,
+        "properties": {
+          "auction": {
+            "enum": [
+              "epex",
+              "n2ex"
+            ],
+            "title": "Auction",
+            "type": "string"
+          },
+          "diff": {
+            "$ref": "#/components/schemas/CI",
+            "description": "MAE(to_slot) - MAE(from_slot), paired; negative means waiting helped."
+          },
+          "from_slot": {
+            "title": "From Slot",
+            "type": "string"
+          },
+          "to_slot": {
+            "title": "To Slot",
+            "type": "string"
+          }
+        },
+        "required": [
+          "auction",
+          "from_slot",
+          "to_slot",
+          "diff"
+        ],
+        "title": "Gain",
+        "type": "object"
+      },
+      "Gate": {
+        "additionalProperties": false,
+        "properties": {
+          "auction": {
+            "enum": [
+              "epex",
+              "n2ex"
+            ],
+            "title": "Auction",
+            "type": "string"
+          },
+          "last_slot_id": {
+            "description": "Latest slot published before this gate on D-1.",
+            "title": "Last Slot Id",
+            "type": "string"
+          },
+          "local_time": {
+            "examples": [
+              "09:20"
+            ],
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "Local Time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "auction",
+          "local_time",
+          "last_slot_id"
+        ],
+        "title": "Gate",
+        "type": "object"
+      },
+      "Health": {
+        "additionalProperties": false,
+        "properties": {
+          "data_hash": {
+            "title": "Data Hash",
+            "type": "string"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SourceStatus"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "version",
+          "data_hash",
+          "source"
+        ],
+        "title": "Health",
+        "type": "object"
+      },
+      "LevelBin": {
+        "additionalProperties": false,
+        "properties": {
+          "corr_p10": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corr P10"
+          },
+          "corr_p50": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corr P50"
+          },
+          "corr_p90": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corr P90"
+          },
+          "hi_mw": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "null for the open-ended top bin.",
+            "title": "Hi Mw"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "lo_mw": {
+            "title": "Lo Mw",
+            "type": "number"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "raw_p10": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw P10"
+          },
+          "raw_p50": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw P50"
+          },
+          "raw_p90": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw P90"
+          }
+        },
+        "required": [
+          "label",
+          "lo_mw",
+          "hi_mw",
+          "n",
+          "raw_p10",
+          "raw_p50",
+          "raw_p90",
+          "corr_p10",
+          "corr_p50",
+          "corr_p90"
+        ],
+        "title": "LevelBin",
+        "type": "object"
+      },
+      "Live": {
+        "additionalProperties": false,
+        "properties": {
+          "calibration": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Calibration"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Trailing-30-day walk-forward fit."
+          },
+          "cutoff_utc": {
+            "format": "date-time",
+            "title": "Cutoff Utc",
+            "type": "string"
+          },
+          "decision_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fetched_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fetched At"
+          },
+          "gate_passed": {
+            "title": "Gate Passed",
+            "type": "boolean"
+          },
+          "hours": {
+            "items": {
+              "$ref": "#/components/schemas/LiveHour"
+            },
+            "title": "Hours",
+            "type": "array"
+          },
+          "latest_publish_time": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Publish Time"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "params": {
+            "$ref": "#/components/schemas/Params"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "target_day": {
+            "format": "date",
+            "title": "Target Day",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "message",
+          "fetched_at",
+          "target_day",
+          "params",
+          "cutoff_utc",
+          "gate_passed",
+          "decision_run",
+          "latest_publish_time",
+          "hours",
+          "calibration"
+        ],
+        "title": "Live",
+        "type": "object"
+      },
+      "LiveHour": {
+        "additionalProperties": false,
+        "properties": {
+          "corrected": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corrected"
+          },
+          "raw": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw"
+          },
+          "t": {
+            "format": "date-time",
+            "title": "T",
+            "type": "string"
+          }
+        },
+        "required": [
+          "t",
+          "raw",
+          "corrected"
+        ],
+        "title": "LiveHour",
+        "type": "object"
+      },
+      "Meta": {
+        "additionalProperties": false,
+        "properties": {
+          "auctions": {
+            "items": {
+              "$ref": "#/components/schemas/Auction"
+            },
+            "title": "Auctions",
+            "type": "array"
+          },
+          "data_hash": {
+            "title": "Data Hash",
+            "type": "string"
+          },
+          "days": {
+            "description": "Delivery days of the January pilot.",
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "excluded_day": {
+            "description": "NESO IT-failure day, optionally excluded from firm stats.",
+            "format": "date",
+            "title": "Excluded Day",
+            "type": "string"
+          },
+          "margins": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Margins",
+            "type": "array"
+          },
+          "slots": {
+            "items": {
+              "$ref": "#/components/schemas/Slot"
+            },
+            "title": "Slots",
+            "type": "array"
+          },
+          "snapshot_fetched_at": {
+            "format": "date-time",
+            "title": "Snapshot Fetched At",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SourceStatus"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "data_hash",
+          "snapshot_fetched_at",
+          "source",
+          "days",
+          "auctions",
+          "margins",
+          "slots",
+          "excluded_day"
+        ],
+        "title": "Meta",
+        "type": "object"
+      },
+      "MethodRow": {
+        "additionalProperties": false,
+        "properties": {
+          "day_cov": {
+            "title": "Day Cov",
+            "type": "number"
+          },
+          "exclude_28": {
+            "title": "Exclude 28",
+            "type": "boolean"
+          },
+          "fallback_bins": {
+            "description": "per_level only: bins that fell back to the pooled quantile.",
+            "title": "Fallback Bins",
+            "type": "integer"
+          },
+          "firm_pct": {
+            "description": "Firm wind as a fraction of the raw forecast.",
+            "title": "Firm Pct",
+            "type": "number"
+          },
+          "hour_cov": {
+            "title": "Hour Cov",
+            "type": "number"
+          },
+          "method": {
+            "enum": [
+              "ratio",
+              "additive",
+              "per_level"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "n_days": {
+            "title": "N Days",
+            "type": "integer"
+          },
+          "n_hours": {
+            "title": "N Hours",
+            "type": "integer"
+          },
+          "r": {
+            "description": "Accepted shortfall, % of hours.",
+            "title": "R",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "method",
+          "r",
+          "exclude_28",
+          "hour_cov",
+          "day_cov",
+          "firm_pct",
+          "n_hours",
+          "n_days",
+          "fallback_bins"
+        ],
+        "title": "MethodRow",
+        "type": "object"
+      },
+      "Ols": {
+        "additionalProperties": false,
+        "properties": {
+          "a": {
+            "title": "A",
+            "type": "number"
+          },
+          "b": {
+            "title": "B",
+            "type": "number"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "title": "Ols",
+        "type": "object"
+      },
+      "Params": {
+        "additionalProperties": false,
+        "properties": {
+          "calib": {
+            "enum": [
+              "jan",
+              "dec"
+            ],
+            "title": "Calib",
+            "type": "string"
+          },
+          "cutoff": {
+            "description": "As requested: 'epex', 'n2ex' or 'HH:MM' (Europe/London, D-1).",
+            "title": "Cutoff",
+            "type": "string"
+          },
+          "cutoff_local": {
+            "description": "Resolved local cutoff on D-1, before the margin.",
+            "examples": [
+              "09:20"
+            ],
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "Cutoff Local",
+            "type": "string"
+          },
+          "day": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day"
+          },
+          "margin": {
+            "description": "Data-latency margin in minutes subtracted from the cutoff.",
+            "title": "Margin",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cutoff",
+          "cutoff_local",
+          "margin",
+          "calib",
+          "day"
+        ],
+        "title": "Params",
+        "type": "object"
+      },
+      "PostGate": {
+        "additionalProperties": false,
+        "properties": {
+          "epex": {
+            "title": "Epex",
+            "type": "boolean"
+          },
+          "n2ex": {
+            "title": "N2Ex",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "epex",
+          "n2ex"
+        ],
+        "title": "PostGate",
+        "type": "object"
+      },
+      "Replay": {
+        "additionalProperties": false,
+        "properties": {
+          "auction_compare": {
+            "$ref": "#/components/schemas/ReplayAuctionCompare"
+          },
+          "calibration": {
+            "$ref": "#/components/schemas/Calibration"
+          },
+          "data_hash": {
+            "title": "Data Hash",
+            "type": "string"
+          },
+          "decision_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hours": {
+            "items": {
+              "$ref": "#/components/schemas/ReplayHour"
+            },
+            "title": "Hours",
+            "type": "array"
+          },
+          "kpis": {
+            "$ref": "#/components/schemas/ReplayKpis"
+          },
+          "params": {
+            "$ref": "#/components/schemas/Params"
+          },
+          "persistence_mw": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Last delivered wind known before the cutoff.",
+            "title": "Persistence Mw"
+          },
+          "runs": {
+            "description": "Every run published D-2 00:00 to D-1 23:59 local.",
+            "items": {
+              "$ref": "#/components/schemas/ReplayRun"
+            },
+            "title": "Runs",
+            "type": "array"
+          },
+          "signal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Sig"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "watch": {
+            "items": {
+              "$ref": "#/components/schemas/Sig"
+            },
+            "title": "Watch",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data_hash",
+          "params",
+          "decision_run",
+          "hours",
+          "runs",
+          "calibration",
+          "persistence_mw",
+          "kpis",
+          "auction_compare",
+          "signal",
+          "watch"
+        ],
+        "title": "Replay",
+        "type": "object"
+      },
+      "ReplayAuctionCompare": {
+        "additionalProperties": false,
+        "properties": {
+          "epex_publish_time": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Epex Publish Time"
+          },
+          "mean_diff_mw": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "mean(N2EX run - EPEX run) over the day's hours.",
+            "title": "Mean Diff Mw"
+          },
+          "n2ex_publish_time": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "N2Ex Publish Time"
+          }
+        },
+        "required": [
+          "epex_publish_time",
+          "n2ex_publish_time",
+          "mean_diff_mw"
+        ],
+        "title": "ReplayAuctionCompare",
+        "type": "object"
+      },
+      "ReplayHour": {
+        "additionalProperties": false,
+        "properties": {
+          "actual": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual"
+          },
+          "corrected": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corrected"
+          },
+          "raw": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw"
+          },
+          "t": {
+            "format": "date-time",
+            "title": "T",
+            "type": "string"
+          }
+        },
+        "required": [
+          "t",
+          "raw",
+          "corrected",
+          "actual"
+        ],
+        "title": "ReplayHour",
+        "type": "object"
+      },
+      "ReplayKpis": {
+        "additionalProperties": false,
+        "properties": {
+          "correction_avg_mw": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "mean(corrected - raw); negative lowers the forecast.",
+            "title": "Correction Avg Mw"
+          },
+          "forecast_avg_mw": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forecast Avg Mw"
+          },
+          "forecast_peak_mw": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forecast Peak Mw"
+          }
+        },
+        "required": [
+          "forecast_avg_mw",
+          "forecast_peak_mw",
+          "correction_avg_mw"
+        ],
+        "title": "ReplayKpis",
+        "type": "object"
+      },
+      "ReplayRun": {
+        "additionalProperties": false,
+        "properties": {
+          "publish_time": {
+            "format": "date-time",
+            "title": "Publish Time",
+            "type": "string"
+          },
+          "too_late": {
+            "description": "Published at or after the cutoff.",
+            "title": "Too Late",
+            "type": "boolean"
+          },
+          "values": {
+            "description": "Aligned to Replay.hours; null where the run has no value.",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "publish_time",
+          "too_late",
+          "values"
+        ],
+        "title": "ReplayRun",
+        "type": "object"
+      },
+      "RunInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "hours_ahead_max": {
+            "title": "Hours Ahead Max",
+            "type": "number"
+          },
+          "hours_ahead_min": {
+            "description": "Lead from publish time to the first delivery hour, h.",
+            "title": "Hours Ahead Min",
+            "type": "number"
+          },
+          "n_hours": {
+            "title": "N Hours",
+            "type": "integer"
+          },
+          "publish_time": {
+            "format": "date-time",
+            "title": "Publish Time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "publish_time",
+          "hours_ahead_min",
+          "hours_ahead_max",
+          "n_hours"
+        ],
+        "title": "RunInfo",
+        "type": "object"
+      },
+      "SensitivityRow": {
+        "additionalProperties": false,
+        "properties": {
+          "alignment": {
+            "enum": [
+              "hour_mean",
+              "hh_start",
+              "centred"
+            ],
+            "title": "Alignment",
+            "type": "string"
+          },
+          "bias": {
+            "title": "Bias",
+            "type": "number"
+          },
+          "mae": {
+            "title": "Mae",
+            "type": "number"
+          }
+        },
+        "required": [
+          "alignment",
+          "mae",
+          "bias"
+        ],
+        "title": "SensitivityRow",
+        "type": "object"
+      },
+      "Sig": {
+        "additionalProperties": false,
+        "description": "A deterministic signal; the frontend renders the sentence from id + params.",
+        "properties": {
+          "id": {
+            "enum": [
+              "above_ceiling",
+              "revision",
+              "correction",
+              "calibrating",
+              "run_jump"
+            ],
+            "title": "Id",
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "title": "Params",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "params"
+        ],
+        "title": "Sig",
+        "type": "object"
+      },
+      "Slot": {
+        "additionalProperties": false,
+        "properties": {
+          "day_offset": {
+            "enum": [
+              -2,
+              -1
+            ],
+            "title": "Day Offset",
+            "type": "integer"
+          },
+          "id": {
+            "description": "'d2_0230' .. 'd1_2230'.",
+            "examples": [
+              "d1_0730"
+            ],
+            "title": "Id",
+            "type": "string"
+          },
+          "local_time": {
+            "examples": [
+              "09:20"
+            ],
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "Local Time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "day_offset",
+          "local_time"
+        ],
+        "title": "Slot",
+        "type": "object"
+      },
+      "SourceStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "checked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          },
+          "state": {
+            "enum": [
+              "checking",
+              "verified",
+              "changed",
+              "unreachable"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "checked_at"
+        ],
+        "title": "SourceStatus",
+        "type": "object"
+      },
+      "Waiting": {
+        "additionalProperties": false,
+        "properties": {
+          "auction_diff": {
+            "$ref": "#/components/schemas/CI",
+            "description": "MAE(N2EX gate run) - MAE(EPEX gate run), paired."
+          },
+          "common_hours": {
+            "description": "Hours covered by every slot; all slot metrics use only these.",
+            "title": "Common Hours",
+            "type": "integer"
+          },
+          "data_hash": {
+            "title": "Data Hash",
+            "type": "string"
+          },
+          "gains": {
+            "items": {
+              "$ref": "#/components/schemas/Gain"
+            },
+            "title": "Gains",
+            "type": "array"
+          },
+          "gates": {
+            "items": {
+              "$ref": "#/components/schemas/Gate"
+            },
+            "title": "Gates",
+            "type": "array"
+          },
+          "slots": {
+            "items": {
+              "$ref": "#/components/schemas/WaitingSlot"
+            },
+            "title": "Slots",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data_hash",
+          "common_hours",
+          "slots",
+          "gates",
+          "gains",
+          "auction_diff"
+        ],
+        "title": "Waiting",
+        "type": "object"
+      },
+      "WaitingSlot": {
+        "additionalProperties": false,
+        "properties": {
+          "bias": {
+            "title": "Bias",
+            "type": "number"
+          },
+          "day_offset": {
+            "enum": [
+              -2,
+              -1
+            ],
+            "title": "Day Offset",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "local_time": {
+            "examples": [
+              "09:20"
+            ],
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "Local Time",
+            "type": "string"
+          },
+          "mae": {
+            "$ref": "#/components/schemas/CI"
+          },
+          "n_hours": {
+            "title": "N Hours",
+            "type": "integer"
+          },
+          "post_gate": {
+            "$ref": "#/components/schemas/PostGate"
+          },
+          "rmse": {
+            "title": "Rmse",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "day_offset",
+          "local_time",
+          "mae",
+          "bias",
+          "rmse",
+          "n_hours",
+          "post_gate"
+        ],
+        "title": "WaitingSlot",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Firm Wind API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/accuracy": {
+      "get": {
+        "operationId": "accuracy_api_v1_accuracy_get",
+        "parameters": [
+          {
+            "description": "Auction preset or a custom D-1 time in Europe/London (HH:MM).",
+            "in": "query",
+            "name": "cutoff",
+            "required": false,
+            "schema": {
+              "default": "epex",
+              "description": "Auction preset or a custom D-1 time in Europe/London (HH:MM).",
+              "pattern": "^(epex|n2ex|([01]\\d|2[0-3]):[0-5]\\d)$",
+              "title": "Cutoff",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Data-latency margin, minutes (0-60, steps of 10).",
+            "in": "query",
+            "name": "margin",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Data-latency margin, minutes (0-60, steps of 10).",
+              "maximum": 60,
+              "minimum": 0,
+              "multipleOf": 10,
+              "title": "Margin",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Training window start: January only, or from 1 December.",
+            "in": "query",
+            "name": "calib",
+            "required": false,
+            "schema": {
+              "default": "jan",
+              "description": "Training window start: January only, or from 1 December.",
+              "enum": [
+                "jan",
+                "dec"
+              ],
+              "title": "Calib",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Data hash sent by the client; ignored by the server.",
+            "in": "query",
+            "name": "v",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Data hash sent by the client; ignored by the server.",
+              "title": "V"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Accuracy"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Accuracy"
+      }
+    },
+    "/api/v1/export.csv": {
+      "get": {
+        "operationId": "export_csv_api_v1_export_csv_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "view",
+            "required": true,
+            "schema": {
+              "enum": [
+                "replay",
+                "accuracy",
+                "firm",
+                "waiting"
+              ],
+              "title": "View",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Auction preset or a custom D-1 time in Europe/London (HH:MM).",
+            "in": "query",
+            "name": "cutoff",
+            "required": false,
+            "schema": {
+              "default": "epex",
+              "description": "Auction preset or a custom D-1 time in Europe/London (HH:MM).",
+              "pattern": "^(epex|n2ex|([01]\\d|2[0-3]):[0-5]\\d)$",
+              "title": "Cutoff",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Data-latency margin, minutes (0-60, steps of 10).",
+            "in": "query",
+            "name": "margin",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Data-latency margin, minutes (0-60, steps of 10).",
+              "maximum": 60,
+              "minimum": 0,
+              "multipleOf": 10,
+              "title": "Margin",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Training window start: January only, or from 1 December.",
+            "in": "query",
+            "name": "calib",
+            "required": false,
+            "schema": {
+              "default": "jan",
+              "description": "Training window start: January only, or from 1 December.",
+              "enum": [
+                "jan",
+                "dec"
+              ],
+              "title": "Calib",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required for view=replay.",
+            "in": "query",
+            "name": "day",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Required for view=replay.",
+              "title": "Day"
+            }
+          },
+          {
+            "description": "Data hash sent by the client; ignored by the server.",
+            "in": "query",
+            "name": "v",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Data hash sent by the client; ignored by the server.",
+              "title": "V"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Export Csv"
+      }
+    },
+    "/api/v1/firm": {
+      "get": {
+        "operationId": "firm_api_v1_firm_get",
+        "parameters": [
+          {
+            "description": "Auction preset or a custom D-1 time in Europe/London (HH:MM).",
+            "in": "query",
+            "name": "cutoff",
+            "required": false,
+            "schema": {
+              "default": "epex",
+              "description": "Auction preset or a custom D-1 time in Europe/London (HH:MM).",
+              "pattern": "^(epex|n2ex|([01]\\d|2[0-3]):[0-5]\\d)$",
+              "title": "Cutoff",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Data-latency margin, minutes (0-60, steps of 10).",
+            "in": "query",
+            "name": "margin",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Data-latency margin, minutes (0-60, steps of 10).",
+              "maximum": 60,
+              "minimum": 0,
+              "multipleOf": 10,
+              "title": "Margin",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Training window start: January only, or from 1 December.",
+            "in": "query",
+            "name": "calib",
+            "required": false,
+            "schema": {
+              "default": "jan",
+              "description": "Training window start: January only, or from 1 December.",
+              "enum": [
+                "jan",
+                "dec"
+              ],
+              "title": "Calib",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Data hash sent by the client; ignored by the server.",
+            "in": "query",
+            "name": "v",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Data hash sent by the client; ignored by the server.",
+              "title": "V"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Firm"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Firm"
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "operationId": "health_api_v1_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/api/v1/live": {
+      "get": {
+        "description": "Always 200: an Elexon outage is a `status`, not an HTTP error, so the page can say so.",
+        "operationId": "live_api_v1_live_get",
+        "parameters": [
+          {
+            "description": "Auction preset or a custom D-1 time in Europe/London (HH:MM).",
+            "in": "query",
+            "name": "cutoff",
+            "required": false,
+            "schema": {
+              "default": "epex",
+              "description": "Auction preset or a custom D-1 time in Europe/London (HH:MM).",
+              "pattern": "^(epex|n2ex|([01]\\d|2[0-3]):[0-5]\\d)$",
+              "title": "Cutoff",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Data-latency margin, minutes (0-60, steps of 10).",
+            "in": "query",
+            "name": "margin",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Data-latency margin, minutes (0-60, steps of 10).",
+              "maximum": 60,
+              "minimum": 0,
+              "multipleOf": 10,
+              "title": "Margin",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Live"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Live"
+      }
+    },
+    "/api/v1/meta": {
+      "get": {
+        "operationId": "meta_api_v1_meta_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meta"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Meta"
+      }
+    },
+    "/api/v1/replay": {
+      "get": {
+        "operationId": "replay_api_v1_replay_get",
+        "parameters": [
+          {
+            "description": "Delivery day; one of meta.days.",
+            "in": "query",
+            "name": "day",
+            "required": true,
+            "schema": {
+              "description": "Delivery day; one of meta.days.",
+              "format": "date",
+              "title": "Day",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Auction preset or a custom D-1 time in Europe/London (HH:MM).",
+            "in": "query",
+            "name": "cutoff",
+            "required": false,
+            "schema": {
+              "default": "epex",
+              "description": "Auction preset or a custom D-1 time in Europe/London (HH:MM).",
+              "pattern": "^(epex|n2ex|([01]\\d|2[0-3]):[0-5]\\d)$",
+              "title": "Cutoff",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Data-latency margin, minutes (0-60, steps of 10).",
+            "in": "query",
+            "name": "margin",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Data-latency margin, minutes (0-60, steps of 10).",
+              "maximum": 60,
+              "minimum": 0,
+              "multipleOf": 10,
+              "title": "Margin",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Training window start: January only, or from 1 December.",
+            "in": "query",
+            "name": "calib",
+            "required": false,
+            "schema": {
+              "default": "jan",
+              "description": "Training window start: January only, or from 1 December.",
+              "enum": [
+                "jan",
+                "dec"
+              ],
+              "title": "Calib",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Data hash sent by the client; ignored by the server.",
+            "in": "query",
+            "name": "v",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Data hash sent by the client; ignored by the server.",
+              "title": "V"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Replay"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Replay"
+      }
+    },
+    "/api/v1/waiting": {
+      "get": {
+        "operationId": "waiting_api_v1_waiting_get",
+        "parameters": [
+          {
+            "description": "Data hash sent by the client; ignored by the server.",
+            "in": "query",
+            "name": "v",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Data hash sent by the client; ignored by the server.",
+              "title": "V"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Waiting"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        },
+        "summary": "Waiting"
+      }
+    }
+  }
+}

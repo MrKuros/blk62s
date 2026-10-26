@@ -1,0 +1,14 @@
+# Local run: `docker compose up --build`, then open http://localhost:8080 (API docs at /api/docs).
+services:
+  api:
+    build: ./backend
+    restart: unless-stopped
+
+  web:
+    build: ./frontend
+    ports:
+      - "8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
